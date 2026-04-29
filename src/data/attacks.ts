@@ -199,7 +199,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Model Extraction',
     category: Categories.AI,
     summary: 'API経由で大量クエリを行い、独自AIモデルの挙動を複製・盗用する攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'deepfake-fraud',
