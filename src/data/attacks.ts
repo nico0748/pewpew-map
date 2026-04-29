@@ -167,7 +167,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Indirect Prompt Injection',
     category: Categories.AI,
     summary: 'Webやドキュメントに命令を仕込み、LLMが取り込むことで間接的に制御を奪う攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'jailbreak',

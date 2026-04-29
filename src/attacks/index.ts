@@ -16,6 +16,7 @@ import { supplyChain } from './supply-chain';
 import { bruteForce } from './brute-force';
 import { passwordList } from './password-list';
 import { promptInjection } from './prompt-injection';
+import { indirectPromptInjection } from './indirect-prompt-injection';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -34,7 +35,8 @@ const all: AttackDefinition[] = [
   supplyChain,
   bruteForce,
   passwordList,
-  promptInjection
+  promptInjection,
+  indirectPromptInjection
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(
