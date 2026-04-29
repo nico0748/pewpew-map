@@ -159,7 +159,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Prompt Injection',
     category: Categories.AI,
     summary: 'LLMへの入力に命令を仕込み、システムプロンプトや制約を上書きさせる攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'indirect-prompt-injection',

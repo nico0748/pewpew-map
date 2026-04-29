@@ -15,6 +15,7 @@ import { wateringHole } from './watering-hole';
 import { supplyChain } from './supply-chain';
 import { bruteForce } from './brute-force';
 import { passwordList } from './password-list';
+import { promptInjection } from './prompt-injection';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -32,7 +33,8 @@ const all: AttackDefinition[] = [
   wateringHole,
   supplyChain,
   bruteForce,
-  passwordList
+  passwordList,
+  promptInjection
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(
