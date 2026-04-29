@@ -151,7 +151,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'SSRF',
     category: Categories.WEB,
     summary: 'サーバを踏み台に内部ネットワークやクラウドメタデータへアクセスさせる攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'prompt-injection',

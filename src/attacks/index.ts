@@ -23,6 +23,7 @@ import { adversarialExamples } from './adversarial-examples';
 import { modelExtraction } from './model-extraction';
 import { deepfakeFraud } from './deepfake-fraud';
 import { mfaFatigue } from './mfa-fatigue';
+import { ssrf } from './ssrf';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -48,7 +49,8 @@ const all: AttackDefinition[] = [
   adversarialExamples,
   modelExtraction,
   deepfakeFraud,
-  mfaFatigue
+  mfaFatigue,
+  ssrf
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(
