@@ -175,7 +175,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'LLM Jailbreak',
     category: Categories.AI,
     summary: 'ロールプレイや符号化を駆使してAIの安全制限を回避し、禁止コンテンツを引き出す攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'data-poisoning',
