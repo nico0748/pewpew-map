@@ -143,7 +143,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'MFA Fatigue / Push Bombing',
     category: Categories.AUTH,
     summary: 'プッシュ通知型MFAを大量に送りつけ、被害者が誤って承認するのを狙う攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'ssrf',

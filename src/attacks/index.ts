@@ -22,6 +22,7 @@ import { dataPoisoning } from './data-poisoning';
 import { adversarialExamples } from './adversarial-examples';
 import { modelExtraction } from './model-extraction';
 import { deepfakeFraud } from './deepfake-fraud';
+import { mfaFatigue } from './mfa-fatigue';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -46,7 +47,8 @@ const all: AttackDefinition[] = [
   dataPoisoning,
   adversarialExamples,
   modelExtraction,
-  deepfakeFraud
+  deepfakeFraud,
+  mfaFatigue
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(
