@@ -12,6 +12,7 @@ import { ransomware } from './ransomware';
 import { driveByDownload } from './drive-by-download';
 import { targetedAttack } from './targeted-attack';
 import { wateringHole } from './watering-hole';
+import { supplyChain } from './supply-chain';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -26,7 +27,8 @@ const all: AttackDefinition[] = [
   ransomware,
   driveByDownload,
   targetedAttack,
-  wateringHole
+  wateringHole,
+  supplyChain
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(

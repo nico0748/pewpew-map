@@ -110,7 +110,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Supply Chain',
     category: Categories.TARGET,
     summary: '取引先や利用OSS/ライブラリを起点に最終標的へ侵入する攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'ransomware',
