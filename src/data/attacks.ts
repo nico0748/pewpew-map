@@ -183,7 +183,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Training Data Poisoning',
     category: Categories.AI,
     summary: '学習データに細工したサンプルを混入させ、モデルにバックドアやバイアスを埋め込む攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'adversarial-examples',

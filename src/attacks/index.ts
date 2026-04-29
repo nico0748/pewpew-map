@@ -18,6 +18,7 @@ import { passwordList } from './password-list';
 import { promptInjection } from './prompt-injection';
 import { indirectPromptInjection } from './indirect-prompt-injection';
 import { jailbreak } from './jailbreak';
+import { dataPoisoning } from './data-poisoning';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -38,7 +39,8 @@ const all: AttackDefinition[] = [
   passwordList,
   promptInjection,
   indirectPromptInjection,
-  jailbreak
+  jailbreak,
+  dataPoisoning
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(
