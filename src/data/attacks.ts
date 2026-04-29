@@ -86,7 +86,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Drive-by Download',
     category: Categories.MASS,
     summary: 'Webサイト閲覧だけで自動的にマルウェアをダウンロード・実行させる攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'targeted-attack',
