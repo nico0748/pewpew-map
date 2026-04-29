@@ -191,7 +191,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Adversarial Examples',
     category: Categories.AI,
     summary: 'わずかな摂動を加えた入力でMLモデルを誤分類させる攻撃。標識誤認や検知回避に悪用。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'model-extraction',
