@@ -207,6 +207,6 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Deepfake Voice/Video Fraud',
     category: Categories.AI,
     summary: 'AI生成音声・映像で経営層になりすまし、送金や認証承認を引き出す詐欺。',
-    implemented: false
+    implemented: true
   }
 ];
