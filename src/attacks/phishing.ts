@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'phishing')!;
@@ -35,30 +34,43 @@ export const phishing: AttackDefinition = {
     stage.addActor('fakesite',  { pict: 'browser',  pos: { x: 0.78, y: 0.22 }, label: '偽サイト' });
     stage.addActor('cred',      { pict: 'key',      pos: { x: 0.78, y: 0.78 }, label: 'ID/PW' });
     stage.addActor('attacker2', { pict: 'attacker', pos: { x: 0.95, y: 0.5  } });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('攻撃者がブランド模倣メールを送信');
-          stage.sendPacket('attacker', 'mail', { duration: 700, payload: 'From: bank-support' });
-        }, hold: 800 },
-        { run: () => stage.sendPacket('mail', 'victim', { duration: 700, payload: '"再認証してください"' }), hold: 800 },
-        { run: () => {
-          stage.status('受信者がリンクをクリック → 偽サイトへ誘導');
-          stage.sendPacket('victim', 'fakesite', { duration: 700, className: 'benign', payload: 'クリック' });
-        }, hold: 900 },
-        { run: () => {
-          stage.flashActor('fakesite', 'shake', 500);
-          stage.status('利用者が偽サイトに ID/PW を入力');
-          stage.sendPacket('victim', 'cred', { duration: 700, className: 'benign', payload: 'ID/PW入力' });
-        }, hold: 900 },
-        { run: () => {
-          stage.status('攻撃者が認証情報を回収');
-          stage.sendPacket('cred', 'attacker2', { duration: 900, payload: '認証情報' });
-        }, hold: 1100 },
-        { run: () => stage.status('攻撃完了: パスキー/FIDO2 や送信ドメイン認証で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: 'ブランド模倣メールを大量送信',
+      description: '攻撃者が銀行・宅配・キャリア決済等の正規ブランドを装ったメール/SMSを大量送信する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'mail', { duration: 1000, payload: 'From: bank-support' });
+      }
+    },
+    {
+      title: '受信者のもとに届く',
+      description: '"再認証してください" "支払いに失敗しました" など緊急性を煽る文面が表示される。',
+      run: (stage) => {
+        stage.sendPacket('mail', 'victim', { duration: 1000, payload: '"再認証してください"' });
+      }
+    },
+    {
+      title: 'リンクをクリックして偽サイトへ',
+      description: '受信者がメール内リンクをクリックし、本物そっくりに作られた偽ログイン画面に誘導される。',
+      run: (stage) => {
+        stage.sendPacket('victim', 'fakesite', { duration: 1000, className: 'benign', payload: 'クリック' });
+      }
+    },
+    {
+      title: '偽サイトでID/PWを入力してしまう',
+      description: '偽サイトのフォームに正規認証情報を入力してしまう。',
+      run: (stage) => {
+        stage.flashActor('fakesite', 'shake', 800);
+        stage.sendPacket('victim', 'cred', { duration: 1000, className: 'benign', payload: 'ID/PW入力' });
+      }
+    },
+    {
+      title: '攻撃者が認証情報を回収',
+      description: '入力された情報は即座に攻撃者へ転送される。パスキー/FIDO2 や送信ドメイン認証で防御可能。',
+      run: (stage) => {
+        stage.sendPacket('cred', 'attacker2', { duration: 1100, payload: '認証情報' });
+      }
+    }
+  ]
 };

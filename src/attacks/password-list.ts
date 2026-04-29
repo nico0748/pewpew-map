@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'password-list')!;
@@ -35,32 +34,40 @@ export const passwordList: AttackDefinition = {
     stage.addActor('a1',       { pict: 'lock',     pos: { x: 0.85, y: 0.18 }, label: 'アカウント1' });
     stage.addActor('a2',       { pict: 'lock',     pos: { x: 0.85, y: 0.50 }, label: 'アカウント2' });
     stage.addActor('a3',       { pict: 'lock',     pos: { x: 0.85, y: 0.82 }, label: 'アカウント3' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('他社流出のID/PWリストを入手');
-          stage.sendPacket('attacker', 'list', { duration: 700, payload: 'leaked.txt' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('リストの組み合わせで別サービスへ自動ログイン試行');
-          stage.sendPacket('list', 'login', { duration: 700, payload: 'user1:pwA' });
-          stage.after(220, () => stage.sendPacket('list', 'login', { duration: 700, payload: 'user2:pwB' }));
-          stage.after(440, () => stage.sendPacket('list', 'login', { duration: 700, payload: 'user3:pwC' }));
-        }, hold: 1300 },
-        { run: () => {
-          stage.status('使い回しユーザはそのまま突破される');
-          stage.flashActor('a1', 'shake', 700);
-          stage.setActorPict('a1', 'unlock', '突破');
-          stage.flashActor('a3', 'shake', 700);
-          stage.setActorPict('a3', 'unlock', '突破');
-        }, hold: 1000 },
-        { run: () => {
-          stage.sendPacket('login', 'attacker', { duration: 1000, payload: '成功した認証情報' });
-        }, hold: 1100 },
-        { run: () => stage.status('攻撃完了: MFA + 漏洩PW突合 + リスクベース認証 で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '流出済ID/PWリストを入手',
+      description: '攻撃者は他社サービスから流出した認証情報リストをアンダーグラウンドで入手する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'list', { duration: 1000, payload: 'leaked.txt' });
+      }
+    },
+    {
+      title: '別サービスへ自動ログイン試行',
+      description: '入手したID/PWの組み合わせを別サービスに対して機械的に投入する。',
+      run: (stage) => {
+        stage.sendPacket('list', 'login', { duration: 900, payload: 'user1:pwA' });
+        stage.after(300, () => stage.sendPacket('list', 'login', { duration: 900, payload: 'user2:pwB' }));
+        stage.after(600, () => stage.sendPacket('list', 'login', { duration: 900, payload: 'user3:pwC' }));
+      }
+    },
+    {
+      title: '使い回しユーザが突破される',
+      description: 'パスワードを使い回している利用者のアカウントは次々と認証を通過してしまう。',
+      run: (stage) => {
+        stage.flashActor('a1', 'shake', 900);
+        stage.setActorPict('a1', 'unlock', '突破');
+        stage.flashActor('a3', 'shake', 900);
+        stage.setActorPict('a3', 'unlock', '突破');
+      }
+    },
+    {
+      title: '攻撃者へ成功した認証情報が戻る',
+      description: '成功した組み合わせのみを抽出し、後続の不正利用に活用される。MFA + 漏洩PW突合で防御可能。',
+      run: (stage) => {
+        stage.sendPacket('login', 'attacker', { duration: 1100, payload: '成功した認証情報' });
+      }
+    }
+  ]
 };

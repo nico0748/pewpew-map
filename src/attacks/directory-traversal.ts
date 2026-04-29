@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'directory-traversal')!;
@@ -27,29 +26,40 @@ export const directoryTraversal: AttackDefinition = {
     { head: 'ライブラリ任せにしない:', body: '"安全な静的ファイル配信" を謳うミドルウェアでも設定ミスで穴が開く。テストでカバーする。' }
   ],
   setup(stage) {
-    stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5 },  label: '攻撃者' });
-    stage.addActor('app',      { pict: 'server',   pos: { x: 0.45, y: 0.5 },  label: 'Webアプリ' });
+    stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5  }, label: '攻撃者' });
+    stage.addActor('app',      { pict: 'server',   pos: { x: 0.45, y: 0.5  }, label: 'Webアプリ' });
     stage.addActor('public',   { pict: 'document', pos: { x: 0.78, y: 0.18 }, label: '/var/www/public' });
     stage.addActor('secret',   { pict: 'document', pos: { x: 0.78, y: 0.78 }, label: '/etc/shadow' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('"?file=../../../../etc/shadow" を投入');
-          stage.sendPacket('attacker', 'app', { duration: 800, payload: '?file=../../etc/shadow' });
-        }, hold: 900 },
-        { run: () => {
-          stage.status('アプリがパスを正規化せずに open()');
-          stage.sendPacket('app', 'secret', { duration: 700, payload: 'open(path)' });
-        }, hold: 800 },
-        { run: () => {
-          stage.flashActor('secret', 'shake', 500);
-          stage.setActorPict('secret', 'unlock', '/etc/shadow');
-          stage.sendPacket('secret', 'attacker', { duration: 1100, payload: 'ハッシュ化済PW一覧' });
-        }, hold: 1300 },
-        { run: () => stage.status('攻撃完了: パス正規化 + ベースDIR検証 + IDによる間接参照で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '"../" を含むパスを送信',
+      description: 'パラメータに "../../../../etc/shadow" のようなディレクトリ脱出シーケンスを含めて要求する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'app', { duration: 1100, payload: '?file=../../etc/shadow' });
+      }
+    },
+    {
+      title: 'アプリがパスを正規化せずに open()',
+      description: 'アプリは公開ディレクトリ前提でファイルを開くが、パスが上位階層に到達してしまう。',
+      run: (stage) => {
+        stage.sendPacket('app', 'secret', { duration: 1000, payload: 'open(path)' });
+      }
+    },
+    {
+      title: '本来見せられないファイルが読まれる',
+      description: '/etc/shadow など本来Webプロセスで読むべきでないファイルが読み出されてしまう。',
+      run: (stage) => {
+        stage.flashActor('secret', 'shake', 800);
+        stage.setActorPict('secret', 'unlock', '/etc/shadow');
+      }
+    },
+    {
+      title: '攻撃者にファイル内容が流出',
+      description: 'ハッシュ化済PWなど機密が漏洩。パス正規化 + ベースDIR検証 + IDによる間接参照で防御可能。',
+      run: (stage) => {
+        stage.sendPacket('secret', 'attacker', { duration: 1300, payload: 'ハッシュ化済PW一覧' });
+      }
+    }
+  ]
 };

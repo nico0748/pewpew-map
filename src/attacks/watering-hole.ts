@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'watering-hole')!;
@@ -35,33 +34,43 @@ export const wateringHole: AttackDefinition = {
     stage.addActor('emp2',     { pict: 'user',     pos: { x: 0.55, y: 0.50 }, label: '対象組織B 従業員' });
     stage.addActor('outsider', { pict: 'user',     pos: { x: 0.55, y: 0.82 }, label: '無関係な利用者' });
     stage.addActor('payload',  { pict: 'document', pos: { x: 0.85, y: 0.34 }, label: 'マルウェア' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('攻撃者が業界専門サイトをこっそり改ざん');
-          stage.sendPacket('attacker', 'site', { duration: 800, payload: '改ざんJS埋め込み' });
-        }, hold: 900 },
-        { run: () => {
-          stage.status('普段通りに従業員がサイトを訪問');
-          stage.sendPacket('emp1',     'site', { duration: 600, className: 'benign', payload: 'GET /' });
-          stage.sendPacket('emp2',     'site', { duration: 600, className: 'benign', payload: 'GET /' });
-          stage.sendPacket('outsider', 'site', { duration: 600, className: 'benign', payload: 'GET /' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('IP/UAでフィルタ → 標的組織の閲覧者だけにペイロード配信');
-          stage.sendPacket('site', 'payload', { duration: 600, payload: 'select target' });
-          stage.sendPacket('payload', 'emp1', { duration: 800, payload: 'exploit + dropper' });
-          stage.sendPacket('payload', 'emp2', { duration: 800, payload: 'exploit + dropper' });
-        }, hold: 1000 },
-        { run: () => {
-          stage.flashActor('emp1', 'shake', 700);
-          stage.flashActor('emp2', 'shake', 700);
-          stage.status('対象組織のみが感染。無関係な利用者は配信対象外');
-        }, hold: 900 },
-        { run: () => stage.status('攻撃完了: 改ざん監視 + ブラウザ最新化 + EDR/DNSフィルタ で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '業界サイトを改ざん',
+      description: '攻撃者が、標的組織の従業員がよく訪問する業界専門サイトをこっそり改ざんする。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'site', { duration: 1100, payload: '改ざんJS埋め込み' });
+        stage.after(900, () => stage.flashActor('site', 'shake', 700));
+      }
+    },
+    {
+      title: '従業員/外部の人がサイトを訪問',
+      description: '対象組織の従業員も無関係な利用者も、いつも通りそのサイトを開く。',
+      run: (stage) => {
+        stage.sendPacket('emp1',     'site', { duration: 1000, className: 'benign', payload: 'GET /' });
+        stage.sendPacket('emp2',     'site', { duration: 1000, className: 'benign', payload: 'GET /' });
+        stage.sendPacket('outsider', 'site', { duration: 1000, className: 'benign', payload: 'GET /' });
+      }
+    },
+    {
+      title: 'IP/UAでフィルタしてペイロード配信',
+      description: '改ざんスクリプトがIP/UAを判定し、標的組織の閲覧者だけにマルウェアを送る。',
+      run: (stage) => {
+        stage.sendPacket('site', 'payload', { duration: 800, payload: 'select target' });
+        stage.after(700, () => {
+          stage.sendPacket('payload', 'emp1', { duration: 1000, payload: 'exploit + dropper' });
+          stage.sendPacket('payload', 'emp2', { duration: 1000, payload: 'exploit + dropper' });
+        });
+      }
+    },
+    {
+      title: '対象組織のみが感染',
+      description: '対象組織の端末は感染、無関係な利用者は何も起こらない。検知をすり抜けやすい。',
+      run: (stage) => {
+        stage.flashActor('emp1', 'shake', 900);
+        stage.flashActor('emp2', 'shake', 900);
+      }
+    }
+  ]
 };

@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import type { Stage } from './lib/Stage';
 
 export interface AttackCategory {
@@ -22,15 +21,30 @@ export interface AttackMeta {
   implemented: boolean;
 }
 
-/** 各攻撃ページが提供する詳細情報とアニメーション。 */
+/**
+ * 1つの攻撃フェーズ。「次へ」ボタンで1ステップずつ進める。
+ *
+ * - title: 進行ステップの見出し(短文)
+ * - description: ステップ中の状況説明文
+ * - run: Stage に対する1フェーズ分のアニメーション
+ */
+export interface AttackStep {
+  title: string;
+  description: string;
+  run: (stage: Stage) => void;
+}
+
+/** 各攻撃ページが提供する詳細情報とステップ列。 */
 export interface AttackDefinition {
   meta: AttackMeta;
   caseStudy: string;
   damage: InfoItem[];
   defense: InfoItem[];
   devNote: InfoItem[];
-  /** Stage に対してアクター登録 + シナリオ開始ハンドラを返す。 */
-  setup: (stage: Stage) => () => void;
+  /** Stage に対してアクター登録を行う(初期状態の構築のみ)。 */
+  setup: (stage: Stage) => void;
+  /** ステップ列。順番に実行されることを前提に書く。 */
+  steps: AttackStep[];
 }
 
 export type PictogramName =
@@ -47,5 +61,3 @@ export type PictogramName =
   | 'bot'
   | 'shield'
   | 'key';
-
-export type PictogramComponent = ComponentType<{ className?: string }>;

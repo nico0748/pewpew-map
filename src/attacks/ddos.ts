@@ -44,30 +44,50 @@ export const ddos: AttackDefinition = {
       stage.addActor(`bot${i}`, { pict: 'bot', pos: p, label: i === 0 ? 'ボットネット' : undefined });
     });
     stage.addActor('target', { pict: 'server', pos: { x: 0.85, y: 0.5 }, label: '標的サーバ' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      stage.status('C&C → ボットへ攻撃指令');
-      botPositions.forEach((_, i) => {
-        stage.sendPacket('attacker', `bot${i}`, { duration: 600, className: 'benign', payload: 'ATTACK' });
-      });
-
-      for (let wave = 0; wave < 6; wave++) {
-        const at = 800 + wave * 400;
-        stage.after(at, () => {
-          botPositions.forEach((_, i) => {
-            const delay = Math.random() * 200;
-            stage.after(delay, () => stage.sendPacket(`bot${i}`, 'target', { duration: 700 }));
-          });
-          if (wave === 2) stage.flashActor('target', 'shake', 2400);
-          if (wave === 3) stage.status('標的サーバ過負荷 → 応答できなくなる');
-          if (wave === 5) stage.setActorPict('target', 'warning', '標的サーバ(停止)');
+  },
+  steps: [
+    {
+      title: 'C&Cがボットへ攻撃指令',
+      description: '攻撃者がC&Cサーバ経由で多数のボットに対して一斉攻撃の指令を送る。',
+      run: (stage) => {
+        botPositions.forEach((_, i) => {
+          stage.sendPacket('attacker', `bot${i}`, { duration: 900, className: 'benign', payload: 'ATTACK' });
         });
       }
-
-      stage.after(800 + 6 * 400 + 400, () =>
-        stage.status('サービス停止: CDN/Anti-DDoS と適切なレートリミットで緩和')
-      );
-    };
-  }
+    },
+    {
+      title: '一斉にリクエスト送信開始',
+      description: 'すべてのボットが標的サーバへ同時多発的にリクエストを送り始める。',
+      run: (stage) => {
+        for (let wave = 0; wave < 3; wave++) {
+          stage.after(wave * 400, () => {
+            botPositions.forEach((_, i) => {
+              stage.after(Math.random() * 200, () => stage.sendPacket(`bot${i}`, 'target', { duration: 800 }));
+            });
+          });
+        }
+      }
+    },
+    {
+      title: 'サーバが過負荷で揺れ始める',
+      description: '処理能力を超えるリクエストが届き、サーバの応答が遅延し始める。',
+      run: (stage) => {
+        stage.flashActor('target', 'shake', 2000);
+        for (let wave = 0; wave < 3; wave++) {
+          stage.after(wave * 400, () => {
+            botPositions.forEach((_, i) => {
+              stage.after(Math.random() * 200, () => stage.sendPacket(`bot${i}`, 'target', { duration: 800 }));
+            });
+          });
+        }
+      }
+    },
+    {
+      title: 'サービス停止',
+      description: '正規ユーザの応答も処理できなくなり、サービスが事実上停止する。',
+      run: (stage) => {
+        stage.setActorPict('target', 'warning', '標的サーバ(停止)');
+      }
+    }
+  ]
 };

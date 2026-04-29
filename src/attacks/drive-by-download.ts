@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'drive-by-download')!;
@@ -34,33 +33,38 @@ export const driveByDownload: AttackDefinition = {
     stage.addActor('exploit', { pict: 'warning',  pos: { x: 0.62, y: 0.5  }, label: 'Exploit Kit' });
     stage.addActor('payload', { pict: 'document', pos: { x: 0.85, y: 0.22 }, label: 'マルウェア' });
     stage.addActor('cnc',     { pict: 'attacker', pos: { x: 0.85, y: 0.78 }, label: '攻撃者C&C' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('利用者が普段のサイトを閲覧(改ざんに気づかない)');
-          stage.sendPacket('victim', 'site', { duration: 700, className: 'benign', payload: 'GET /' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('ページ内のスクリプトが Exploit Kit へ自動リダイレクト');
-          stage.sendPacket('site', 'exploit', { duration: 700, payload: 'iframe → exploit kit' });
-        }, hold: 900 },
-        { run: () => {
-          stage.flashActor('exploit', 'shake', 600);
-          stage.status('ブラウザ/プラグインのゼロデイを突き、マルウェアを配信');
-          stage.sendPacket('exploit', 'payload', { duration: 700, payload: 'dropper.exe' });
-        }, hold: 900 },
-        { run: () => {
-          stage.sendPacket('payload', 'victim', { duration: 900, payload: '自動DL+実行' });
-          stage.flashActor('victim', 'shake', 800);
-        }, hold: 1000 },
-        { run: () => {
-          stage.status('感染端末がC&Cと通信開始');
-          stage.sendPacket('victim', 'cnc', { duration: 1000, payload: 'beacon' });
-        }, hold: 1100 },
-        { run: () => stage.status('攻撃完了: ブラウザ最新化 + EDR + CSP/SRI/sandbox で多層防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '普段のサイトを閲覧',
+      description: '利用者は普段通りに正規サイトを訪問するが、サイトはこっそり改ざんされている。',
+      run: (stage) => {
+        stage.sendPacket('victim', 'site', { duration: 1000, className: 'benign', payload: 'GET /' });
+      }
+    },
+    {
+      title: 'Exploit Kit へ自動リダイレクト',
+      description: '埋め込まれた攻撃用JSが、ブラウザを攻撃者の Exploit Kit へリダイレクトさせる。',
+      run: (stage) => {
+        stage.sendPacket('site', 'exploit', { duration: 1000, payload: 'iframe → exploit kit' });
+      }
+    },
+    {
+      title: 'ゼロデイを突きペイロード送り込み',
+      description: 'ブラウザ/プラグインの脆弱性を突き、マルウェア(dropper)を被害端末へ送り込む。',
+      run: (stage) => {
+        stage.flashActor('exploit', 'shake', 800);
+        stage.sendPacket('exploit', 'payload', { duration: 900, payload: 'dropper.exe' });
+        stage.after(900, () => stage.sendPacket('payload', 'victim', { duration: 1000, payload: '自動DL+実行' }));
+      }
+    },
+    {
+      title: '感染端末がC&Cとビーコン',
+      description: '感染が成立した端末はバックグラウンドでC&Cと通信を始め、追加の指示や情報送信を行う。',
+      run: (stage) => {
+        stage.flashActor('victim', 'shake', 1000);
+        stage.sendPacket('victim', 'cnc', { duration: 1100, payload: 'beacon' });
+      }
+    }
+  ]
 };

@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'sql-injection')!;
@@ -32,25 +31,40 @@ export const sqlInjection: AttackDefinition = {
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5 }, label: '攻撃者' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.50, y: 0.5 }, label: 'Webアプリ' });
     stage.addActor('db',       { pict: 'database', pos: { x: 0.88, y: 0.5 }, label: 'DB' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status("入力欄に「' OR 1=1 --」を投入");
-          stage.sendPacket('attacker', 'app', { duration: 900, payload: "' OR 1=1 --" });
-        }, hold: 1000 },
-        { run: () => {
-          stage.status('アプリが文字列連結でSQLを組み立てDBへ送信');
-          stage.sendPacket('app', 'db', { duration: 800, payload: 'SELECT * WHERE id=… OR 1=1' });
-        }, hold: 900 },
-        { run: () => {
-          stage.flashActor('db', 'shake', 800);
-          stage.status('DBが全件返却 → 情報漏洩');
-          stage.sendPacket('db', 'attacker', { duration: 1100, className: 'benign', payload: '全テーブルの行を返却' });
-        }, hold: 1200 },
-        { run: () => stage.status('攻撃完了: バインド変数を使えば防げた攻撃') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '攻撃ペイロードの投入',
+      description: "攻撃者が入力欄に「' OR 1=1 --」のようなSQL断片を含む文字列を投入する。",
+      run: (stage) => {
+        stage.sendPacket('attacker', 'app', { duration: 1100, payload: "' OR 1=1 --" });
+      }
+    },
+    {
+      title: 'SQL文が組み立てられDBへ送信',
+      description: 'アプリが入力値を文字列連結でSQLに埋め込み、意図しないSELECT文がDBへ送信される。',
+      run: (stage) => {
+        stage.sendPacket('app', 'db', { duration: 1100, payload: 'SELECT * WHERE id=… OR 1=1' });
+      }
+    },
+    {
+      title: 'DBが全件を返却',
+      description: '"OR 1=1" により条件が常に真となり、DBがテーブル全行を返却してしまう。',
+      run: (stage) => {
+        stage.flashActor('db', 'shake', 1000);
+        stage.sendPacket('db', 'attacker', {
+          duration: 1300,
+          className: 'benign',
+          payload: '全テーブルの行を返却'
+        });
+      }
+    },
+    {
+      title: '情報漏洩成立',
+      description: '本来見せるべきでないデータが攻撃者の手元に渡る。バインド変数を使えば防げた典型例。',
+      run: (stage) => {
+        stage.flashActor('attacker', 'shake', 800);
+      }
+    }
+  ]
 };

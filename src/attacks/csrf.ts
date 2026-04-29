@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'csrf')!;
@@ -32,32 +31,42 @@ export const csrf: AttackDefinition = {
     stage.addActor('victim',   { pict: 'user',     pos: { x: 0.10, y: 0.78 }, label: '被害者(ログイン中)' });
     stage.addActor('vbrowser', { pict: 'browser',  pos: { x: 0.40, y: 0.78 }, label: '被害者ブラウザ' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.85, y: 0.5  }, label: '正規サービス' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('攻撃者が罠サイトを設置(隠しフォーム/img)');
-          stage.sendPacket('attacker', 'trap', { duration: 700, payload: '<form action=正規 …>' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('被害者は正規サービスにログイン中');
-          stage.sendPacket('victim', 'vbrowser', { duration: 500, className: 'benign', payload: '正規ログイン済' });
-        }, hold: 700 },
-        { run: () => {
-          stage.status('別タブで罠サイトを閲覧');
-          stage.sendPacket('vbrowser', 'trap', { duration: 600, className: 'benign', payload: 'GET 罠ページ' });
-        }, hold: 700 },
-        { run: () => {
-          stage.status('罠ページのJSが正規サービスへ自動POST(Cookie同送)');
-          stage.sendPacket('vbrowser', 'app', { duration: 1000, payload: 'POST /transfer (+Cookie)' });
-        }, hold: 1100 },
-        { run: () => {
-          stage.flashActor('app', 'shake', 600);
-          stage.status('正規サービスは "本人の操作" として処理してしまう');
-        }, hold: 800 },
-        { run: () => stage.status('攻撃完了: CSRFトークン + SameSite Cookie で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '罠サイトを設置',
+      description: '攻撃者が、隠しフォームや<img>に正規サイトへのリクエストを仕込んだ罠ページを公開する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'trap', { duration: 1000, payload: '<form action=正規 …>' });
+      }
+    },
+    {
+      title: '被害者が正規サービスにログイン中',
+      description: '被害者は別タブで正規サービスにログインしていて、ブラウザはCookieを保持している。',
+      run: (stage) => {
+        stage.sendPacket('victim', 'vbrowser', { duration: 800, className: 'benign', payload: '正規ログイン済' });
+      }
+    },
+    {
+      title: '罠ページを閲覧してしまう',
+      description: 'メールやSNSのリンクから罠ページを開いてしまう。',
+      run: (stage) => {
+        stage.sendPacket('vbrowser', 'trap', { duration: 1000, className: 'benign', payload: 'GET 罠ページ' });
+      }
+    },
+    {
+      title: '罠ページが正規サービスに自動POST',
+      description: '罠ページのJSが正規サービスにリクエストを発行し、ブラウザはCookieを同送してしまう。',
+      run: (stage) => {
+        stage.sendPacket('vbrowser', 'app', { duration: 1300, payload: 'POST /transfer (+Cookie)' });
+      }
+    },
+    {
+      title: '正規サービスは本人操作と誤認',
+      description: 'Cookieが付いているため、正規サービスは"本人の操作"として処理してしまう。CSRFトークン+SameSiteで防御可能。',
+      run: (stage) => {
+        stage.flashActor('app', 'shake', 1000);
+      }
+    }
+  ]
 };
