@@ -94,7 +94,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Targeted Attack',
     category: Categories.TARGET,
     summary: '特定組織を長期にわたり調査・侵入し、機密情報を窃取する攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'watering-hole',
