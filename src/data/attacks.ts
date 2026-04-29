@@ -102,7 +102,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Watering Hole',
     category: Categories.TARGET,
     summary: '標的が頻繁に訪れるサイトを改ざんし、感染させる攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'supply-chain',
