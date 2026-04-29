@@ -39,7 +39,7 @@ export const Attacks = [
     nameEn: 'OS Command Injection',
     category: Categories.WEB,
     summary: 'アプリケーション経由でサーバOSの任意コマンドを実行させる攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'directory-traversal',
