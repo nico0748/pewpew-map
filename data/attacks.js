@@ -55,7 +55,7 @@ export const Attacks = [
     nameEn: 'Session Hijacking',
     category: Categories.WEB,
     summary: 'セッションIDを盗み、本人になりすましてサービスを利用する攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'ddos',
