@@ -31,7 +31,7 @@ export const Attacks = [
     nameEn: 'CSRF',
     category: Categories.WEB,
     summary: 'ログイン中の利用者に意図しないリクエストを送らせ、勝手に操作させる攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'os-command-injection',
