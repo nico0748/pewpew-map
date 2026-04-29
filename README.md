@@ -7,13 +7,27 @@
 
 ---
 
+## 技術スタック
+
+| レイヤ | 採用技術 |
+| --- | --- |
+| 言語 | **TypeScript** (strict) |
+| UI | **React 18** + React Router |
+| ビルド | Vite |
+| スタイル | プレーンCSS (CSS変数によるテーマ) |
+| アイコン | JIS Z 8210 風のオリジナルSVGコンポーネント |
+| アニメーション | 自作 `Stage` クラス + 宣言的 `runSequence` ヘルパ |
+
+---
+
 ## 特徴
 
-- **ビルド不要 / 静的サイト**: HTML + CSS + Vanilla JS のみ。`index.html` をブラウザで開けば動作します
-- **ピクトグラムベースの可視化**: JIS Z 8210 風のシンプルなSVGピクトグラムで、攻撃者・利用者・サーバ・データなどを表現
-- **再利用可能なアニメーションフレームワーク**: `assets/js/animator.js` を共通基盤として、攻撃ごとの演出を最小コードで追加できる
-- **メタデータ駆動**: 攻撃情報は `data/attacks.js` に集約。新しい攻撃を追加してもトップページの一覧に自動反映
-- **ブランチ駆動開発**: 攻撃手法ごとに独立したブランチで実装することで、レビュー粒度を保ちつつ並列開発が可能
+- **攻撃ごとに独立したファイル**: `src/attacks/<slug>.ts` 1ファイル = 1攻撃。シナリオ・解説・アクター配置を1か所で管理
+- **メタデータ駆動**: `src/data/attacks.ts` のメタ情報からトップカタログとルーティングを自動生成
+- **ルーティング**: `/#/attacks/<slug>` 形式(HashRouter)で静的ホスティング可能
+- **再利用可能なアニメーション基盤**: `Stage` クラスでアクター追加・パケット飛行・揺らし・状態遷移を宣言的に組める
+- **型安全**: `AttackDefinition`, `AttackMeta`, `PictogramName` など主要I/Fを型定義
+- **ブランチ駆動開発**: 攻撃手法ごとに専用ブランチで実装し、レビュー粒度を保ちつつ並列開発
 
 ---
 
@@ -21,26 +35,42 @@
 
 ```
 pewpew-map/
-├── index.html              # トップページ(攻撃カタログ)
 ├── README.md
-├── assets/
-│   ├── css/
-│   │   └── main.css        # 共通スタイル
-│   ├── js/
-│   │   ├── main.js         # トップページのカタログ描画
-│   │   ├── animator.js     # アニメーション共通ライブラリ
-│   │   └── page.js         # 個別攻撃ページの共通レンダリング
-│   └── icons/
-│       └── pictograms.js   # SVGピクトグラム集
-├── data/
-│   └── attacks.js          # 攻撃メタデータ(分類/概要/被害/対策/開発注意)
-└── attacks/
-    ├── sql-injection/
-    ├── xss/
-    ├── ddos/
-    ├── phishing/
-    └── ransomware/
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── index.html
+└── src/
+    ├── main.tsx                  # エントリ
+    ├── App.tsx                   # ルータ定義
+    ├── types.ts                  # AttackDefinition / Meta / Pictogram 等の型
+    ├── styles/main.css
+    ├── data/
+    │   └── attacks.ts            # 攻撃メタデータ + カテゴリ
+    ├── lib/
+    │   ├── Stage.ts              # アニメーション基盤
+    │   └── pictograms.tsx        # SVGピクトグラム
+    ├── components/
+    │   ├── SiteHeader.tsx
+    │   ├── HomePage.tsx          # カタログ
+    │   ├── AttackPage.tsx        # 個別攻撃ページの汎用ビュー
+    │   ├── StageView.tsx         # Stage の React ラッパ
+    │   └── InfoSection.tsx       # 被害/対策/開発注意の3カード
+    └── attacks/
+        ├── index.ts              # 全攻撃を集約 (attackRegistry)
+        ├── sql-injection.ts
+        ├── xss.ts
+        ├── csrf.ts
+        ├── os-command-injection.ts
+        ├── directory-traversal.ts
+        ├── session-hijacking.ts
+        ├── ddos.ts
+        ├── phishing.ts
+        ├── clickjacking.ts
+        └── ransomware.ts
 ```
+
+各攻撃ファイルは `AttackDefinition` を1つ default相当でexportし、`attacks/index.ts` の `attackRegistry` に登録される。トップページの一覧表示・個別ページのレンダリングはこのレジストリ駆動で行われる。
 
 ---
 
@@ -48,13 +78,12 @@ pewpew-map/
 
 | 分類 | 攻撃手法 |
 | --- | --- |
-| Webアプリケーションへの攻撃 | SQLインジェクション / クロスサイトスクリプティング(XSS) / CSRF / OSコマンドインジェクション / ディレクトリトラバーサル / セッションハイジャック |
-| 不特定多数を狙う攻撃 | DoS・DDoS攻撃 / フィッシング / クリックジャッキング / ドライブバイダウンロード |
+| Webアプリケーションへの攻撃 | SQLインジェクション / XSS / CSRF / OSコマンドインジェクション / ディレクトリトラバーサル / セッションハイジャック |
+| 不特定多数を狙う攻撃 | DDoS / フィッシング / クリックジャッキング / ドライブバイダウンロード |
 | 特定組織を狙う攻撃 | 標的型攻撃(APT) / 水飲み場型攻撃 / サプライチェーン攻撃 / ランサムウェア |
-| 認証情報を狙う攻撃 | ブルートフォース / パスワードリスト攻撃 / クレデンシャルスタッフィング |
+| 認証情報を狙う攻撃 | ブルートフォース / パスワードリスト攻撃 |
 
-各攻撃ページには以下の情報を掲載しています。
-
+各攻撃ページに以下を掲載:
 1. 仕組み(アニメーション)
 2. 代表的な被害事例
 3. 対策方法
@@ -62,37 +91,38 @@ pewpew-map/
 
 ---
 
-## 起動方法
+## セットアップ
 
 ```bash
-# 1. 任意の静的サーバで起動
-python3 -m http.server 8080
-# ブラウザで http://localhost:8080 を開く
+npm install
+npm run dev      # http://localhost:5173 で起動
+npm run build    # 本番ビルド (./dist)
+npm run preview  # ビルド成果物のプレビュー
+npm run typecheck
 ```
 
-`file://` で直接 `index.html` を開いても基本的に動作しますが、ブラウザによっては `import` の制約で 8080 など簡易サーバ経由を推奨します。
+---
+
+## 新しい攻撃を追加する手順
+
+1. 統合ブランチから `git switch -c feature/attack-<slug>` で派生
+2. `src/data/attacks.ts` の `AttacksMeta` に1エントリ追加(`implemented: true` を忘れずに)
+3. `src/attacks/<slug>.ts` を作成し `AttackDefinition` をexport
+4. `src/attacks/index.ts` の `all` 配列にimport/追加
+5. `npm run typecheck && npm run build` で型・ビルド確認
+6. 統合ブランチへマージ
 
 ---
 
 ## 開発フロー(ブランチ運用)
 
-このプロジェクトは **攻撃手法ごとに専用ブランチで実装** します。
-
 ```
-claude/cyber-attack-visualization-ZqdAs   ← 統合開発ブランチ(基盤・カタログ)
-  ├─ feature/attack-sql-injection         ← SQLi 実装
-  ├─ feature/attack-xss                   ← XSS 実装
-  ├─ feature/attack-ddos                  ← DDoS 実装
-  ├─ feature/attack-phishing              ← Phishing 実装
-  └─ feature/attack-ransomware            ← Ransomware 実装
+claude/cyber-attack-visualization-ZqdAs   ← 統合開発ブランチ(基盤・レジストリ)
+  ├─ feature/attack-sql-injection         ← 各攻撃手法は専用ブランチ
+  ├─ feature/attack-xss
+  ├─ ...
+  └─ feature/migrate-to-react-ts          ← 大規模リファクタは別ブランチ
 ```
-
-新しい攻撃を追加する手順:
-
-1. `git switch -c feature/attack-<name>` で基盤ブランチから派生
-2. `attacks/<name>/index.html` と `animation.js` を作成
-3. `data/attacks.js` にメタデータを追加(自動的にトップページに表示)
-4. 動作確認後、統合ブランチへマージ
 
 ---
 
