@@ -10,6 +10,7 @@ import { phishing } from './phishing';
 import { clickjacking } from './clickjacking';
 import { ransomware } from './ransomware';
 import { driveByDownload } from './drive-by-download';
+import { targetedAttack } from './targeted-attack';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -22,7 +23,8 @@ const all: AttackDefinition[] = [
   phishing,
   clickjacking,
   ransomware,
-  driveByDownload
+  driveByDownload,
+  targetedAttack
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(
