@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クリックジャッキング</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+</head>
+<body class="attack-page">
+  <header class="site-header">
+    <h1>Cyber Attack Visualization</h1>
+    <p class="lead"><a href="../../index.html">← カタログへ戻る</a></p>
+  </header>
+  <main>
+    <div class="crumbs">カタログ / 不特定多数を狙う攻撃</div>
+    <h2 class="attack-title">クリックジャッキング</h2>
+    <p class="attack-en">Clickjacking</p>
+
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button id="play">▶ 再生</button>
+      <button id="reset" class="secondary">リセット</button>
+      <span class="status">準備完了</span>
+    </div>
+
+    <div id="attack-info"></div>
+  </main>
+  <script type="module" src="animation.js"></script>
+</body>
+</html>

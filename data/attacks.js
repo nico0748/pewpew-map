@@ -79,7 +79,7 @@ export const Attacks = [
     nameEn: 'Clickjacking',
     category: Categories.MASS,
     summary: '透明なiframeを重ね、利用者の意図しないクリックを誘発する攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'drive-by-download',
