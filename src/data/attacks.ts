@@ -1,10 +1,11 @@
 import type { AttackCategory, AttackMeta } from '../types';
 
-export const Categories: Record<'WEB' | 'MASS' | 'TARGET' | 'AUTH', AttackCategory> = {
+export const Categories: Record<'WEB' | 'MASS' | 'TARGET' | 'AUTH' | 'AI', AttackCategory> = {
   WEB:    { id: 'web',    label: 'Webアプリケーションへの攻撃', color: '#3a86ff' },
   MASS:   { id: 'mass',   label: '不特定多数を狙う攻撃',         color: '#ff006e' },
   TARGET: { id: 'target', label: '特定組織を狙う攻撃',           color: '#fb5607' },
-  AUTH:   { id: 'auth',   label: '認証情報を狙う攻撃',           color: '#8338ec' }
+  AUTH:   { id: 'auth',   label: '認証情報を狙う攻撃',           color: '#8338ec' },
+  AI:     { id: 'ai',     label: 'AI/機械学習システムへの攻撃',  color: '#06d6a0' }
 };
 
 export const AttacksMeta: AttackMeta[] = [
@@ -135,5 +136,77 @@ export const AttacksMeta: AttackMeta[] = [
     category: Categories.AUTH,
     summary: '他サービスから漏洩した認証情報リストでログインを試みる攻撃。',
     implemented: true
+  },
+  {
+    slug: 'mfa-fatigue',
+    name: 'MFA疲労攻撃',
+    nameEn: 'MFA Fatigue / Push Bombing',
+    category: Categories.AUTH,
+    summary: 'プッシュ通知型MFAを大量に送りつけ、被害者が誤って承認するのを狙う攻撃。',
+    implemented: false
+  },
+  {
+    slug: 'ssrf',
+    name: 'サーバサイドリクエストフォージェリ',
+    nameEn: 'SSRF',
+    category: Categories.WEB,
+    summary: 'サーバを踏み台に内部ネットワークやクラウドメタデータへアクセスさせる攻撃。',
+    implemented: false
+  },
+  {
+    slug: 'prompt-injection',
+    name: 'プロンプトインジェクション',
+    nameEn: 'Prompt Injection',
+    category: Categories.AI,
+    summary: 'LLMへの入力に命令を仕込み、システムプロンプトや制約を上書きさせる攻撃。',
+    implemented: false
+  },
+  {
+    slug: 'indirect-prompt-injection',
+    name: '間接プロンプトインジェクション',
+    nameEn: 'Indirect Prompt Injection',
+    category: Categories.AI,
+    summary: 'Webやドキュメントに命令を仕込み、LLMが取り込むことで間接的に制御を奪う攻撃。',
+    implemented: false
+  },
+  {
+    slug: 'jailbreak',
+    name: 'ジェイルブレイク',
+    nameEn: 'LLM Jailbreak',
+    category: Categories.AI,
+    summary: 'ロールプレイや符号化を駆使してAIの安全制限を回避し、禁止コンテンツを引き出す攻撃。',
+    implemented: false
+  },
+  {
+    slug: 'data-poisoning',
+    name: 'データポイズニング',
+    nameEn: 'Training Data Poisoning',
+    category: Categories.AI,
+    summary: '学習データに細工したサンプルを混入させ、モデルにバックドアやバイアスを埋め込む攻撃。',
+    implemented: false
+  },
+  {
+    slug: 'adversarial-examples',
+    name: '敵対的サンプル攻撃',
+    nameEn: 'Adversarial Examples',
+    category: Categories.AI,
+    summary: 'わずかな摂動を加えた入力でMLモデルを誤分類させる攻撃。標識誤認や検知回避に悪用。',
+    implemented: false
+  },
+  {
+    slug: 'model-extraction',
+    name: 'モデル抽出攻撃',
+    nameEn: 'Model Extraction',
+    category: Categories.AI,
+    summary: 'API経由で大量クエリを行い、独自AIモデルの挙動を複製・盗用する攻撃。',
+    implemented: false
+  },
+  {
+    slug: 'deepfake-fraud',
+    name: 'ディープフェイク詐欺',
+    nameEn: 'Deepfake Voice/Video Fraud',
+    category: Categories.AI,
+    summary: 'AI生成音声・映像で経営層になりすまし、送金や認証承認を引き出す詐欺。',
+    implemented: false
   }
 ];

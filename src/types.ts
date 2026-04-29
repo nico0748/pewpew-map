@@ -1,7 +1,7 @@
 import type { Stage } from './lib/Stage';
 
 export interface AttackCategory {
-  id: 'web' | 'mass' | 'target' | 'auth';
+  id: 'web' | 'mass' | 'target' | 'auth' | 'ai';
   label: string;
   color: string;
 }
