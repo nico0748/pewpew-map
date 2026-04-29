@@ -20,6 +20,7 @@ import { indirectPromptInjection } from './indirect-prompt-injection';
 import { jailbreak } from './jailbreak';
 import { dataPoisoning } from './data-poisoning';
 import { adversarialExamples } from './adversarial-examples';
+import { modelExtraction } from './model-extraction';
 
 const all: AttackDefinition[] = [
   sqlInjection,
@@ -42,7 +43,8 @@ const all: AttackDefinition[] = [
   indirectPromptInjection,
   jailbreak,
   dataPoisoning,
-  adversarialExamples
+  adversarialExamples,
+  modelExtraction
 ];
 
 export const attackRegistry: Record<string, AttackDefinition> = Object.fromEntries(
