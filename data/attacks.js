@@ -47,7 +47,7 @@ export const Attacks = [
     nameEn: 'Directory Traversal',
     category: Categories.WEB,
     summary: '"../" 等のパス操作で公開すべきでないファイルにアクセスする攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'session-hijacking',
