@@ -134,6 +134,6 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Credential Stuffing',
     category: Categories.AUTH,
     summary: '他サービスから漏洩した認証情報リストでログインを試みる攻撃。',
-    implemented: false
+    implemented: true
   }
 ];
