@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'xss')!;
@@ -34,29 +33,46 @@ export const xss: AttackDefinition = {
     stage.addActor('victim',   { pict: 'user',     pos: { x: 0.10, y: 0.78 }, label: '一般利用者' });
     stage.addActor('browser',  { pict: 'browser',  pos: { x: 0.50, y: 0.78 }, label: '被害ブラウザ' });
     stage.addActor('cnc',      { pict: 'bot',      pos: { x: 0.88, y: 0.5 },  label: '攻撃者の収集サーバ' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('攻撃者が掲示板に <script> を含む投稿を保存');
-          stage.sendPacket('attacker', 'app', { duration: 800, payload: '<script>fetch(...)</script>' });
-        }, hold: 900 },
-        { run: () => {
-          stage.status('一般利用者が当該ページを閲覧');
-          stage.sendPacket('victim', 'browser', { duration: 600, className: 'benign', payload: 'GET /board' });
-        }, hold: 700 },
-        { run: () => {
-          stage.status('アプリがエスケープせず HTML をそのまま返却');
-          stage.sendPacket('app', 'browser', { duration: 800, payload: '...<script>...' });
-        }, hold: 900 },
-        { run: () => {
-          stage.flashActor('browser', 'shake', 600);
-          stage.status('被害者ブラウザでスクリプトが実行され Cookie 送信');
-          stage.sendPacket('browser', 'cnc', { duration: 1100, payload: 'document.cookie' });
-        }, hold: 1200 },
-        { run: () => stage.status('攻撃完了: 出力エスケープ + CSP + HttpOnly Cookie で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '悪意あるスクリプトを投稿',
+      description: '攻撃者が掲示板や SNS の投稿欄に <script> を含むデータを保存する(蓄積型XSS)。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'app', { duration: 1000, payload: '<script>fetch(...)</script>' });
+      }
+    },
+    {
+      title: '一般利用者がページを閲覧',
+      description: '何も知らない利用者が攻撃者の投稿が含まれるページを開く。',
+      run: (stage) => {
+        stage.sendPacket('victim', 'browser', { duration: 900, className: 'benign', payload: 'GET /board' });
+        stage.after(900, () => {
+          stage.sendPacket('browser', 'app', { duration: 700, className: 'benign', payload: 'fetch HTML' });
+        });
+      }
+    },
+    {
+      title: 'エスケープされていないHTMLが返却',
+      description: 'アプリが投稿内容をエスケープせずそのまま埋め込んで返却する。',
+      run: (stage) => {
+        stage.sendPacket('app', 'browser', { duration: 1000, payload: '...<script>...' });
+      }
+    },
+    {
+      title: 'ブラウザでスクリプトが実行 → Cookie送信',
+      description: '被害者のブラウザが攻撃者のスクリプトを実行し、セッションCookieが攻撃者サーバへ送信される。',
+      run: (stage) => {
+        stage.flashActor('browser', 'shake', 800);
+        stage.sendPacket('browser', 'cnc', { duration: 1300, payload: 'document.cookie' });
+      }
+    },
+    {
+      title: 'なりすまし成立',
+      description: '攻撃者は入手したCookieで被害者になりすましログインできる。出力エスケープ + CSP + HttpOnly で防御可能。',
+      run: (stage) => {
+        stage.flashActor('cnc', 'shake', 800);
+      }
+    }
+  ]
 };

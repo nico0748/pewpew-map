@@ -1,71 +1,84 @@
 import { useEffect, useRef, useState } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { Stage } from '../lib/Stage';
-import { Pictograms } from '../lib/pictograms';
-import type { PictogramName } from '../types';
+import type { AttackDefinition } from '../types';
 
-interface StageViewProps {
-  /** Stageインスタンスにアクター等を登録し、再生開始関数を返す。 */
-  setup: (stage: Stage) => () => void;
-  initialStatus?: string;
+interface Props {
+  attack: AttackDefinition;
 }
 
-export function StageView({ setup, initialStatus = '準備完了' }: StageViewProps) {
+/**
+ * ステップ実行型のステージビュー。
+ * - マウント時に attack.setup() を実行してアクターを配置
+ * - 「次へ」ボタンを押すと steps[stepIdx] のアニメーションが流れ、stepIdx が進む
+ * - 「リセット」ですべてを clearAll してから setup を再実行し、stepIdx を0に戻す
+ */
+export function StageView({ attack }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const statusRef = useRef<HTMLSpanElement>(null);
   const stageInstance = useRef<Stage | null>(null);
-  const playFnRef = useRef<(() => void) | null>(null);
-  const actorRoots = useRef<Root[]>([]);
-  const [, setTick] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  // この再構築カウンタで Stage を作り直す
+  const [rebuildKey, setRebuildKey] = useState(0);
 
   useEffect(() => {
     if (!stageRef.current) return;
-
-    const renderActor = (slot: HTMLElement, pict: PictogramName, label?: string) => {
-      const Pict = Pictograms[pict];
-      const root = createRoot(slot);
-      actorRoots.current.push(root);
-      root.render(
-        <>
-          <Pict />
-          {label && <div className="label">{label}</div>}
-        </>
-      );
-    };
-
-    const stage = new Stage(stageRef.current, statusRef.current, renderActor);
+    const stage = new Stage(stageRef.current);
+    attack.setup(stage);
     stageInstance.current = stage;
-    playFnRef.current = setup(stage);
-    setTick((n) => n + 1);
-
     return () => {
       stage.dispose();
-      // unmount portals
-      queueMicrotask(() => {
-        actorRoots.current.forEach((r) => r.unmount());
-        actorRoots.current = [];
-      });
       stageInstance.current = null;
-      playFnRef.current = null;
     };
-  }, [setup]);
+  }, [attack, rebuildKey]);
 
-  const onPlay = () => {
-    stageInstance.current?.reset();
-    playFnRef.current?.();
+  const total = attack.steps.length;
+  const currentStep = stepIdx > 0 ? attack.steps[stepIdx - 1] : null;
+  const nextStep = stepIdx < total ? attack.steps[stepIdx] : null;
+  const finished = stepIdx >= total;
+
+  const onNext = () => {
+    const stage = stageInstance.current;
+    if (!stage || !nextStep) return;
+    stage.clearTimers();
+    stage.clearPackets();
+    nextStep.run(stage);
+    setStepIdx(stepIdx + 1);
   };
+
   const onReset = () => {
-    stageInstance.current?.reset();
-    if (statusRef.current) statusRef.current.textContent = initialStatus;
+    setStepIdx(0);
+    setRebuildKey((k) => k + 1); // useEffect で setup 再実行
   };
 
   return (
     <>
       <div className="stage" ref={stageRef} />
+      <div className="step-info">
+        <div className="step-progress">
+          ステップ {stepIdx} / {total}
+          {finished && <span className="finished-tag">完了</span>}
+        </div>
+        <div className="step-title">
+          {finished
+            ? '攻撃シナリオの再生が完了しました'
+            : currentStep
+              ? `現在のフェーズ: ${currentStep.title}`
+              : `次のフェーズ: ${nextStep?.title ?? ''}`}
+        </div>
+        <div className="step-desc">
+          {finished
+            ? '「リセット」で最初から再生できます'
+            : currentStep
+              ? currentStep.description
+              : nextStep?.description}
+        </div>
+      </div>
       <div className="controls">
-        <button type="button" onClick={onPlay}>▶ 再生</button>
-        <button type="button" className="secondary" onClick={onReset}>リセット</button>
-        <span className="status" ref={statusRef}>{initialStatus}</span>
+        <button type="button" onClick={onNext} disabled={finished}>
+          {stepIdx === 0 ? '▶ 開始' : finished ? '完了' : '次へ ▶'}
+        </button>
+        <button type="button" className="secondary" onClick={onReset}>
+          リセット
+        </button>
       </div>
     </>
   );

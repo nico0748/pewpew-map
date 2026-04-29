@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'supply-chain')!;
@@ -35,38 +34,49 @@ export const supplyChain: AttackDefinition = {
     stage.addActor('cust1',    { pict: 'server',   pos: { x: 0.85, y: 0.18 }, label: '顧客企業A' });
     stage.addActor('cust2',    { pict: 'server',   pos: { x: 0.85, y: 0.50 }, label: '顧客企業B' });
     stage.addActor('cust3',    { pict: 'server',   pos: { x: 0.85, y: 0.82 }, label: '顧客企業C' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('攻撃者がベンダのビルド基盤に侵入');
-          stage.sendPacket('attacker', 'vendor', { duration: 800, payload: 'CI/CD侵入' });
-        }, hold: 900 },
-        { run: () => {
-          stage.flashActor('vendor', 'shake', 600);
-          stage.status('正規ビルドにバックドアを忍ばせて署名・配布');
-          stage.sendPacket('vendor', 'package', { duration: 700, payload: 'with backdoor' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('顧客は正規アップデートとして自動配信を受け取る');
-          stage.sendPacket('package', 'cust1', { duration: 800, className: 'benign', payload: '正規署名の更新' });
-          stage.sendPacket('package', 'cust2', { duration: 800, className: 'benign', payload: '正規署名の更新' });
-          stage.sendPacket('package', 'cust3', { duration: 800, className: 'benign', payload: '正規署名の更新' });
-        }, hold: 1000 },
-        { run: () => {
-          stage.flashActor('cust1', 'shake', 700);
-          stage.flashActor('cust2', 'shake', 700);
-          stage.flashActor('cust3', 'shake', 700);
-          stage.status('全顧客で同時にバックドアが起動');
-        }, hold: 900 },
-        { run: () => {
-          stage.sendPacket('cust1', 'attacker', { duration: 900, payload: 'beacon' });
-          stage.sendPacket('cust2', 'attacker', { duration: 900, payload: 'beacon' });
-          stage.sendPacket('cust3', 'attacker', { duration: 900, payload: 'beacon' });
-        }, hold: 1100 },
-        { run: () => stage.status('攻撃完了: SBOM + SLSA + ピン留め依存 + 段階適用 で被害軽減') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: 'ベンダのビルド基盤に侵入',
+      description: '攻撃者が、最終標的ではなくその上流にあるベンダのビルド/CI環境に侵入する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'vendor', { duration: 1100, payload: 'CI/CD侵入' });
+        stage.after(900, () => stage.flashActor('vendor', 'shake', 800));
+      }
+    },
+    {
+      title: '正規ビルドにバックドアを混入',
+      description: 'ベンダの署名/配布フローに乗せて、バックドア付きパッケージを正規パッケージとして配布する。',
+      run: (stage) => {
+        stage.sendPacket('vendor', 'package', { duration: 1000, payload: 'with backdoor' });
+      }
+    },
+    {
+      title: '顧客は正規アップデートとして受信',
+      description: '顧客側は署名検証も通る正規アップデートとして自動配信を受け取る。',
+      run: (stage) => {
+        stage.sendPacket('package', 'cust1', { duration: 1000, className: 'benign', payload: '正規署名の更新' });
+        stage.sendPacket('package', 'cust2', { duration: 1000, className: 'benign', payload: '正規署名の更新' });
+        stage.sendPacket('package', 'cust3', { duration: 1000, className: 'benign', payload: '正規署名の更新' });
+      }
+    },
+    {
+      title: '全顧客で同時にバックドアが起動',
+      description: '更新を取り込んだ全顧客の環境で、ほぼ同時にバックドアが活性化する。',
+      run: (stage) => {
+        stage.flashActor('cust1', 'shake', 900);
+        stage.flashActor('cust2', 'shake', 900);
+        stage.flashActor('cust3', 'shake', 900);
+      }
+    },
+    {
+      title: '攻撃者へビーコン送信',
+      description: '各顧客の環境から攻撃者C&Cへビーコンが届き、攻撃者は次のステップへ進める。',
+      run: (stage) => {
+        stage.sendPacket('cust1', 'attacker', { duration: 1100, payload: 'beacon' });
+        stage.sendPacket('cust2', 'attacker', { duration: 1100, payload: 'beacon' });
+        stage.sendPacket('cust3', 'attacker', { duration: 1100, payload: 'beacon' });
+      }
+    }
+  ]
 };

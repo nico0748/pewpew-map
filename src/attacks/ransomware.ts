@@ -1,8 +1,8 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'ransomware')!;
+const docs = ['doc1', 'doc2', 'doc3', 'doc4'];
 
 export const ransomware: AttackDefinition = {
   meta,
@@ -36,38 +36,43 @@ export const ransomware: AttackDefinition = {
     stage.addActor('doc3',     { pict: 'document', pos: { x: 0.58, y: 0.66 } });
     stage.addActor('doc4',     { pict: 'document', pos: { x: 0.58, y: 0.90 } });
     stage.addActor('ransom',   { pict: 'warning',  pos: { x: 0.85, y: 0.5  }, label: '身代金要求' });
-
-    const docs = ['doc1', 'doc2', 'doc3', 'doc4'];
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('VPN/RDPの脆弱性 or 漏洩クレデンシャルで侵入');
-          stage.sendPacket('attacker', 'vpn', { duration: 800, payload: 'login (stolen)' });
-        }, hold: 900 },
-        { run: () => {
-          stage.status('社内ネットワークへ横展開');
-          docs.forEach((d, i) => {
-            stage.after(i * 200, () => stage.sendPacket('vpn', d, { duration: 500, className: 'benign', payload: 'recon' }));
+  },
+  steps: [
+    {
+      title: '初期侵入',
+      description: 'VPN/RDPの脆弱性、もしくは漏洩した認証情報を使って社内ネットワークに侵入する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'vpn', { duration: 1100, payload: 'login (stolen)' });
+      }
+    },
+    {
+      title: '横展開',
+      description: '社内ネットワークを偵察し、攻撃可能なファイルサーバ・端末を順番に把握する。',
+      run: (stage) => {
+        docs.forEach((d, i) => {
+          stage.after(i * 300, () => stage.sendPacket('vpn', d, { duration: 700, className: 'benign', payload: 'recon' }));
+        });
+      }
+    },
+    {
+      title: 'ファイルを順次暗号化',
+      description: '対象ファイルを順番に暗号化し、開けない状態にしていく。',
+      run: (stage) => {
+        docs.forEach((d, i) => {
+          stage.after(i * 500, () => {
+            stage.flashActor(d, 'shake', 700);
+            stage.setActorPict(d, 'lock', '暗号化済');
           });
-        }, hold: 1500 },
-        { run: () => {
-          stage.status('ファイルを順次暗号化');
-          docs.forEach((d, i) => {
-            stage.after(i * 350, () => {
-              stage.flashActor(d, 'shake', 500);
-              stage.setActorPict(d, 'lock', '暗号化済');
-            });
-          });
-        }, hold: 1800 },
-        { run: () => {
-          stage.status('身代金を要求');
-          stage.flashActor('ransom', 'shake', 800);
-          stage.sendPacket('ransom', 'attacker', { duration: 1100, payload: '$$$ 暗号通貨' });
-        }, hold: 1300 },
-        { run: () => stage.status('攻撃完了: MFA + オフラインバックアップ + EDR で被害を最小化') }
-      ]);
-    };
-  }
+        });
+      }
+    },
+    {
+      title: '身代金要求',
+      description: '画面に脅迫文が出る。暗号通貨での支払いを要求し、応じなければ流出させると脅す(二重脅迫)。',
+      run: (stage) => {
+        stage.flashActor('ransom', 'shake', 1100);
+        stage.sendPacket('ransom', 'attacker', { duration: 1300, payload: '$$$ 暗号通貨' });
+      }
+    }
+  ]
 };

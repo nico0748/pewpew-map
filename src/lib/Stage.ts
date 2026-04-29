@@ -1,4 +1,5 @@
 import type { PictogramName } from '../types';
+import { actorMarkup } from './pictograms';
 
 interface ActorPos {
   x: number; // 0..1
@@ -19,24 +20,19 @@ interface PacketOptions {
 }
 
 /**
- * 攻撃シナリオのアニメーションを動かすためのDOM操作ライブラリ。
- * React側では useEffect でインスタンスを生成し、unmount時に dispose() を呼ぶ。
+ * 攻撃シナリオのアクター/パケット/状態表示を扱う軽量アニメーション基盤。
+ *
+ * Reactのレンダリングループに乗らないよう、アクターは innerHTML で直接組み立てる。
+ * これによりStrictModeの二重マウントでも描画状態が安定し、ピクトグラムが
+ * 必ず即時に表示される。
  */
 export class Stage {
   private root: HTMLElement;
-  private actors = new Map<string, { el: HTMLElement }>();
+  private actors = new Map<string, HTMLElement>();
   private timers: number[] = [];
-  private statusEl: HTMLElement | null;
-  private renderActor: (slot: HTMLElement, pict: PictogramName, label?: string) => void;
 
-  constructor(
-    root: HTMLElement,
-    statusEl: HTMLElement | null,
-    renderActor: (slot: HTMLElement, pict: PictogramName, label?: string) => void
-  ) {
+  constructor(root: HTMLElement) {
     this.root = root;
-    this.statusEl = statusEl;
-    this.renderActor = renderActor;
   }
 
   addActor(id: string, opts: ActorOptions): void {
@@ -45,23 +41,22 @@ export class Stage {
     el.dataset.id = id;
     el.style.left = `calc(${opts.pos.x * 100}% - 32px)`;
     el.style.top = `calc(${opts.pos.y * 100}% - 32px)`;
-    this.renderActor(el, opts.pict, opts.label);
+    el.innerHTML = actorMarkup(opts.pict, opts.label);
     this.root.appendChild(el);
-    this.actors.set(id, { el });
+    this.actors.set(id, el);
   }
 
   setActorPict(id: string, pict: PictogramName, label?: string): void {
-    const a = this.actors.get(id);
-    if (!a) return;
-    a.el.innerHTML = '';
-    this.renderActor(a.el, pict, label);
+    const el = this.actors.get(id);
+    if (!el) return;
+    el.innerHTML = actorMarkup(pict, label);
   }
 
   flashActor(id: string, className = 'shake', duration = 600): void {
-    const a = this.actors.get(id);
-    if (!a) return;
-    a.el.classList.add(className);
-    this.after(duration, () => a.el.classList.remove(className));
+    const el = this.actors.get(id);
+    if (!el) return;
+    el.classList.add(className);
+    this.after(duration, () => el.classList.remove(className));
   }
 
   sendPacket(fromId: string, toId: string, opts: PacketOptions = {}): void {
@@ -69,8 +64,8 @@ export class Stage {
     const to = this.actors.get(toId);
     if (!from || !to) return;
     const rect = this.root.getBoundingClientRect();
-    const fr = from.el.getBoundingClientRect();
-    const tr = to.el.getBoundingClientRect();
+    const fr = from.getBoundingClientRect();
+    const tr = to.getBoundingClientRect();
     const sx = fr.left - rect.left + fr.width / 2;
     const sy = fr.top - rect.top + fr.height / 2;
     const tx = tr.left - rect.left + tr.width / 2;
@@ -100,19 +95,28 @@ export class Stage {
     });
   }
 
-  status(text: string): void {
-    if (this.statusEl) this.statusEl.textContent = text;
+  /** 現フェーズ中だけ流れているパケットを消す。アクターは保持。 */
+  clearPackets(): void {
+    this.root.querySelectorAll('.packet').forEach((p) => p.remove());
+    this.actors.forEach((el) => el.classList.remove('shake'));
   }
 
-  reset(): void {
-    this.clearTimers();
-    this.root.querySelectorAll('.packet').forEach((p) => p.remove());
-    this.actors.forEach((a) => a.el.classList.remove('shake'));
+  /** 全アクターを除去。 */
+  clearActors(): void {
+    this.actors.forEach((el) => el.remove());
+    this.actors.clear();
   }
 
   clearTimers(): void {
     this.timers.forEach((t) => clearTimeout(t));
     this.timers = [];
+  }
+
+  /** Stage全体をリセット。再生用ハンドラを再構築する前段で利用する。 */
+  resetAll(): void {
+    this.clearTimers();
+    this.clearPackets();
+    this.clearActors();
   }
 
   after(ms: number, fn: () => void): number {
@@ -123,26 +127,7 @@ export class Stage {
 
   dispose(): void {
     this.clearTimers();
-    this.actors.forEach((a) => a.el.remove());
-    this.actors.clear();
+    this.clearActors();
     this.root.querySelectorAll('.packet').forEach((p) => p.remove());
   }
-}
-
-/** 連続したアニメーション手順を宣言的に書くためのヘルパ。 */
-export interface SequenceStep {
-  delay?: number;
-  hold?: number;
-  run: () => void;
-}
-
-export function runSequence(stage: Stage, steps: SequenceStep[]): () => void {
-  let total = 0;
-  const handles: number[] = [];
-  steps.forEach((step) => {
-    const at = total + (step.delay || 0);
-    handles.push(stage.after(at, step.run));
-    total = at + (step.hold || 0);
-  });
-  return () => handles.forEach((h) => clearTimeout(h));
 }

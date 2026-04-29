@@ -31,29 +31,43 @@ export const bruteForce: AttackDefinition = {
     stage.addActor('attacker', { pict: 'bot',     pos: { x: 0.10, y: 0.5 }, label: 'スクリプト' });
     stage.addActor('login',    { pict: 'server',  pos: { x: 0.55, y: 0.5 }, label: 'ログインAPI' });
     stage.addActor('user',     { pict: 'lock',    pos: { x: 0.85, y: 0.5 }, label: 'アカウント' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      const tries = ['password', '123456', 'qwerty', 'admin', 'letmein', 'welcome', 'iloveyou', 'P@ssw0rd!'];
-      tries.forEach((pw, i) => {
-        stage.after(i * 350, () => {
-          stage.sendPacket('attacker', 'login', { duration: 300, payload: pw });
-          stage.after(330, () => {
-            if (i < tries.length - 1) {
-              stage.status(`試行 ${i + 1}: 失敗 (${pw})`);
-              stage.sendPacket('login', 'attacker', { duration: 250, className: 'benign', payload: '401' });
-            } else {
-              stage.status(`試行 ${i + 1}: 成功 (${pw}) → 突破`);
-              stage.flashActor('user', 'shake', 700);
-              stage.setActorPict('user', 'unlock', '突破済');
-              stage.sendPacket('login', 'attacker', { duration: 400, payload: '200 OK + Cookie' });
-            }
+  },
+  steps: [
+    {
+      title: 'よくあるパスワードから試す',
+      description: '"password" "123456" "qwerty" のような辞書ベースで自動試行する。',
+      run: (stage) => {
+        ['password', '123456', 'qwerty'].forEach((pw, i) => {
+          stage.after(i * 500, () => {
+            stage.sendPacket('attacker', 'login', { duration: 400, payload: pw });
+            stage.after(420, () => stage.sendPacket('login', 'attacker', { duration: 350, className: 'benign', payload: '401' }));
           });
         });
-      });
-      stage.after(tries.length * 350 + 700, () =>
-        stage.status('攻撃完了: MFA + レートリミット + slow hash + 辞書ブロックで防御')
-      );
-    };
-  }
+      }
+    },
+    {
+      title: '試行を続ける',
+      description: '失敗してもレートリミットがなければ、攻撃者は機械的に試行を続ける。',
+      run: (stage) => {
+        ['admin', 'letmein', 'welcome'].forEach((pw, i) => {
+          stage.after(i * 500, () => {
+            stage.sendPacket('attacker', 'login', { duration: 400, payload: pw });
+            stage.after(420, () => stage.sendPacket('login', 'attacker', { duration: 350, className: 'benign', payload: '401' }));
+          });
+        });
+      }
+    },
+    {
+      title: '推測しやすいパスワードで突破',
+      description: '弱いパスワードに当たると認証が成立してしまい、本人として扱われる。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'login', { duration: 600, payload: 'P@ssw0rd!' });
+        stage.after(700, () => {
+          stage.flashActor('user', 'shake', 1000);
+          stage.setActorPict('user', 'unlock', '突破済');
+          stage.sendPacket('login', 'attacker', { duration: 800, payload: '200 OK + Cookie' });
+        });
+      }
+    }
+  ]
 };

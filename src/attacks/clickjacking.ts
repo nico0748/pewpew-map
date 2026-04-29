@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'clickjacking')!;
@@ -31,28 +30,36 @@ export const clickjacking: AttackDefinition = {
     stage.addActor('trap',   { pict: 'browser', pos: { x: 0.40, y: 0.30 }, label: '罠ページ(表)' });
     stage.addActor('hidden', { pict: 'browser', pos: { x: 0.40, y: 0.70 }, label: '正規ページ(透明iframe)' });
     stage.addActor('app',    { pict: 'server',  pos: { x: 0.85, y: 0.5  }, label: '正規サービス' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('利用者は"プレゼント当選!"の罠ページを開く');
-          stage.sendPacket('victim', 'trap', { duration: 700, className: 'benign', payload: 'クリック誘導' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('裏側に正規サービスの操作画面が透明iframeで重ねられている');
-          stage.flashActor('hidden', 'shake', 600);
-        }, hold: 800 },
-        { run: () => {
-          stage.status('"応募する"クリックが正規サービスの"送金/退会"を踏む');
-          stage.sendPacket('trap', 'hidden', { duration: 500, payload: 'クリック透過' });
-        }, hold: 600 },
-        { run: () => stage.sendPacket('hidden', 'app', { duration: 900, payload: 'POST /transfer' }), hold: 1000 },
-        { run: () => {
-          stage.flashActor('app', 'shake', 600);
-          stage.status('攻撃完了: X-Frame-Options/CSP frame-ancestors で埋め込み禁止が必須');
-        } }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '罠ページを開く',
+      description: '"プレゼント当選!" などのキャッチで利用者を罠ページに誘導する。',
+      run: (stage) => {
+        stage.sendPacket('victim', 'trap', { duration: 1000, className: 'benign', payload: 'クリック誘導' });
+      }
+    },
+    {
+      title: '裏側に正規ページが透明で重なっている',
+      description: '罠ページの裏に正規サービスの操作画面が透明iframeで重ねられている。',
+      run: (stage) => {
+        stage.flashActor('hidden', 'shake', 1000);
+      }
+    },
+    {
+      title: 'クリックが正規ページの操作を踏む',
+      description: '"応募する"を押したつもりが、裏の透明iframe上の "送金/退会" ボタンをクリックしてしまう。',
+      run: (stage) => {
+        stage.sendPacket('trap', 'hidden', { duration: 800, payload: 'クリック透過' });
+      }
+    },
+    {
+      title: '正規サービスで操作が確定',
+      description: 'Cookieが付いているため、本人の操作として処理が成立する。X-Frame-Options/CSP frame-ancestors で埋め込み禁止が必須。',
+      run: (stage) => {
+        stage.sendPacket('hidden', 'app', { duration: 1100, payload: 'POST /transfer' });
+        stage.after(900, () => stage.flashActor('app', 'shake', 700));
+      }
+    }
+  ]
 };

@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'targeted-attack')!;
@@ -35,36 +34,51 @@ export const targetedAttack: AttackDefinition = {
     stage.addActor('endpoint', { pict: 'browser',  pos: { x: 0.65, y: 0.20 }, label: '感染端末' });
     stage.addActor('ad',       { pict: 'server',   pos: { x: 0.65, y: 0.80 }, label: '社内AD/ファイルサーバ' });
     stage.addActor('exfil',    { pict: 'document', pos: { x: 0.90, y: 0.5  }, label: '機密データ' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('業務に偽装した標的型メールを送付');
-          stage.sendPacket('attacker', 'mail', { duration: 700, payload: '請求書.docx (マクロ付)' });
-        }, hold: 900 },
-        { run: () => {
-          stage.sendPacket('mail', 'employee', { duration: 700, payload: '"確認お願いします"' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('従業員が添付ファイルを開く → 端末が感染');
-          stage.sendPacket('employee', 'endpoint', { duration: 700, className: 'benign', payload: '開封' });
-        }, hold: 800 },
-        { run: () => {
-          stage.flashActor('endpoint', 'shake', 800);
-          stage.status('長期潜伏 → 認証情報を収集 → 横展開');
-          stage.sendPacket('endpoint', 'ad', { duration: 1000, payload: 'lateral movement' });
-        }, hold: 1100 },
-        { run: () => {
-          stage.flashActor('ad', 'shake', 600);
-          stage.status('機密情報を集約 → 暗号化して外部送信');
-          stage.sendPacket('ad', 'exfil', { duration: 700, className: 'benign', payload: 'collect' });
-        }, hold: 800 },
-        { run: () => {
-          stage.sendPacket('exfil', 'attacker', { duration: 1100, payload: 'encrypted exfil' });
-        }, hold: 1200 },
-        { run: () => stage.status('攻撃完了: 多層防御 + ゼロトラスト + EDR/SIEMで継続検知') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '業務に偽装した標的型メール',
+      description: '攻撃者が、相手組織に詳しい内容で書かれた業務文書を装ったメールを送付する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'mail', { duration: 1000, payload: '請求書.docx (マクロ付)' });
+      }
+    },
+    {
+      title: '従業員に届く',
+      description: '一見正規の取引先や社内連絡に見えるため、開かれてしまうことが多い。',
+      run: (stage) => {
+        stage.sendPacket('mail', 'employee', { duration: 1000, payload: '"確認お願いします"' });
+      }
+    },
+    {
+      title: '添付ファイル開封 → 端末感染',
+      description: 'マクロ付きDocやリンクから不正実行が起き、端末がマルウェアに感染する。',
+      run: (stage) => {
+        stage.sendPacket('employee', 'endpoint', { duration: 1000, className: 'benign', payload: '開封' });
+        stage.after(900, () => stage.flashActor('endpoint', 'shake', 1000));
+      }
+    },
+    {
+      title: '長期潜伏 → 横展開',
+      description: 'すぐには活動を始めず、認証情報を集めながら社内サーバ/ADへ侵入を広げる。',
+      run: (stage) => {
+        stage.sendPacket('endpoint', 'ad', { duration: 1300, payload: 'lateral movement' });
+      }
+    },
+    {
+      title: '機密データを集約',
+      description: 'AD・ファイルサーバから組織の機密情報を整理・集約する。',
+      run: (stage) => {
+        stage.flashActor('ad', 'shake', 800);
+        stage.sendPacket('ad', 'exfil', { duration: 1000, className: 'benign', payload: 'collect' });
+      }
+    },
+    {
+      title: '暗号化して外部送信',
+      description: '通信を正常な業務通信に紛れ込ませる形で暗号化してC&Cへ送信する。',
+      run: (stage) => {
+        stage.sendPacket('exfil', 'attacker', { duration: 1300, payload: 'encrypted exfil' });
+      }
+    }
+  ]
 };

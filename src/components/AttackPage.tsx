@@ -21,7 +21,7 @@ export function AttackPage() {
         <div className="crumbs">カタログ / {attack.meta.category.label}</div>
         <h2 className="attack-title">{attack.meta.name}</h2>
         <p className="attack-en">{attack.meta.nameEn}</p>
-        <StageView setup={attack.setup} />
+        <StageView attack={attack} />
         <InfoSection
           caseStudy={attack.caseStudy}
           damage={attack.damage}

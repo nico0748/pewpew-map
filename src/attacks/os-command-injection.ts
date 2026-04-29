@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'os-command-injection')!;
@@ -28,32 +27,40 @@ export const osCommandInjection: AttackDefinition = {
     { head: '構造化ログ:', body: 'コマンド実行の全引数を構造化ログに残し、異常検知できるようにする。' }
   ],
   setup(stage) {
-    stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5 },  label: '攻撃者' });
-    stage.addActor('app',      { pict: 'server',   pos: { x: 0.45, y: 0.5 },  label: 'Webアプリ' });
+    stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5  }, label: '攻撃者' });
+    stage.addActor('app',      { pict: 'server',   pos: { x: 0.45, y: 0.5  }, label: 'Webアプリ' });
     stage.addActor('os',       { pict: 'server',   pos: { x: 0.78, y: 0.30 }, label: 'OSシェル' });
     stage.addActor('files',    { pict: 'document', pos: { x: 0.78, y: 0.78 }, label: '/etc/passwd 等' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('入力欄に "; cat /etc/passwd" を投入');
-          stage.sendPacket('attacker', 'app', { duration: 800, payload: '; cat /etc/passwd' });
-        }, hold: 900 },
-        { run: () => {
-          stage.status('アプリが文字列連結でシェル呼び出し');
-          stage.sendPacket('app', 'os', { duration: 700, payload: 'sh -c "ping … ; cat …"' });
-        }, hold: 800 },
-        { run: () => {
-          stage.flashActor('os', 'shake', 600);
-          stage.sendPacket('os', 'files', { duration: 500, className: 'benign', payload: 'read' });
-        }, hold: 700 },
-        { run: () => {
-          stage.sendPacket('files', 'attacker', { duration: 1100, payload: '/etc/passwd 内容' });
-          stage.status('機密情報が攻撃者へ流出');
-        }, hold: 1200 },
-        { run: () => stage.status('攻撃完了: シェル介在禁止 + 引数配列 + 最小権限で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: 'シェルメタ文字を含む入力を投入',
+      description: '攻撃者が "; cat /etc/passwd" のような区切り文字+コマンドを入力欄に投入する。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'app', { duration: 1100, payload: '; cat /etc/passwd' });
+      }
+    },
+    {
+      title: 'アプリが文字列連結でシェル呼び出し',
+      description: 'アプリが入力をエスケープせずにシェルへ渡し、本来想定していなかったコマンドが実行される。',
+      run: (stage) => {
+        stage.sendPacket('app', 'os', { duration: 1000, payload: 'sh -c "ping … ; cat …"' });
+      }
+    },
+    {
+      title: 'OSが機密ファイルを読み出す',
+      description: 'シェルが攻撃者の意図したコマンドを実行し、本来公開してはいけないファイルを読み出してしまう。',
+      run: (stage) => {
+        stage.flashActor('os', 'shake', 800);
+        stage.sendPacket('os', 'files', { duration: 800, className: 'benign', payload: 'read' });
+      }
+    },
+    {
+      title: '攻撃者へ機密情報が流出',
+      description: 'ファイル内容がレスポンスとして攻撃者の手に渡る。シェル介在禁止 + 引数配列 + 最小権限で防御可能。',
+      run: (stage) => {
+        stage.sendPacket('files', 'attacker', { duration: 1300, payload: '/etc/passwd 内容' });
+      }
+    }
+  ]
 };

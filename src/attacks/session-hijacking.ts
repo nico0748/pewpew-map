@@ -1,5 +1,4 @@
 import type { AttackDefinition } from '../types';
-import { runSequence } from '../lib/Stage';
 import { AttacksMeta } from '../data/attacks';
 
 const meta = AttacksMeta.find((a) => a.slug === 'session-hijacking')!;
@@ -32,28 +31,35 @@ export const sessionHijacking: AttackDefinition = {
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.78 }, label: '攻撃者' });
     stage.addActor('sid',      { pict: 'key',      pos: { x: 0.40, y: 0.50 }, label: 'セッションID' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.78, y: 0.50 }, label: 'Webサービス' });
-
-    return () => {
-      stage.status('攻撃シナリオ再生中…');
-      runSequence(stage, [
-        { run: () => {
-          stage.status('正規利用者がログイン → セッションIDが発行される');
-          stage.sendPacket('app', 'sid', { duration: 600, className: 'benign', payload: 'Set-Cookie: SID=…' });
-        }, hold: 800 },
-        { run: () => {
-          stage.status('Wi-Fi盗聴 / XSSなどで攻撃者がIDを取得');
-          stage.sendPacket('sid', 'attacker', { duration: 800, payload: 'SID=ABCDEF...' });
-        }, hold: 1000 },
-        { run: () => {
-          stage.status('攻撃者が同じCookieでアクセス → 認証通過');
-          stage.sendPacket('attacker', 'app', { duration: 900, payload: 'Cookie: SID=ABCDEF...' });
-        }, hold: 1000 },
-        { run: () => {
-          stage.flashActor('app', 'shake', 500);
-          stage.status('サーバはセッションIDだけで本人として扱う');
-        }, hold: 800 },
-        { run: () => stage.status('攻撃完了: HTTPS + HttpOnly/Secure/SameSite + ログイン時ID再生成 で防御') }
-      ]);
-    };
-  }
+  },
+  steps: [
+    {
+      title: '正規利用者がログインし、セッションIDが発行される',
+      description: 'サーバが利用者にセッションIDを払い出す。これがあれば本人として扱われる。',
+      run: (stage) => {
+        stage.sendPacket('app', 'sid', { duration: 1000, className: 'benign', payload: 'Set-Cookie: SID=…' });
+      }
+    },
+    {
+      title: '攻撃者がセッションIDを盗み出す',
+      description: '公衆Wi-Fi盗聴、XSSによる document.cookie 送信、URL ログ流出などの経路で奪取される。',
+      run: (stage) => {
+        stage.sendPacket('sid', 'attacker', { duration: 1100, payload: 'SID=ABCDEF...' });
+      }
+    },
+    {
+      title: '攻撃者が同じCookieでアクセス',
+      description: '攻撃者は盗んだセッションIDを自分のリクエストに付けるだけで、認証を通過してしまう。',
+      run: (stage) => {
+        stage.sendPacket('attacker', 'app', { duration: 1100, payload: 'Cookie: SID=ABCDEF...' });
+      }
+    },
+    {
+      title: 'なりすまし成立',
+      description: 'サーバはセッションIDだけで本人と判断するため、本人としての操作が可能になる。HTTPS + HttpOnly/Secure/SameSite + ログイン時ID再生成 で防御可能。',
+      run: (stage) => {
+        stage.flashActor('app', 'shake', 800);
+      }
+    }
+  ]
 };
