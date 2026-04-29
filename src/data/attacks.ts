@@ -126,7 +126,7 @@ export const AttacksMeta: AttackMeta[] = [
     nameEn: 'Brute Force',
     category: Categories.AUTH,
     summary: 'パスワードを総当たりで試行し、認証突破を狙う攻撃。',
-    implemented: false
+    implemented: true
   },
   {
     slug: 'password-list',
