@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Stage } from '../lib/Stage';
-import type { AttackDefinition } from '../types';
+import type { AttackDefinition, Level } from '../types';
 
 interface Props {
   attack: AttackDefinition;
+  level: Level;
 }
 
 /**
@@ -11,36 +12,56 @@ interface Props {
  * - マウント時に attack.setup() を実行してアクターを配置
  * - 「次へ」ボタンを押すと steps[stepIdx] のアニメーションが流れ、stepIdx が進む
  * - 「リセット」ですべてを clearAll してから setup を再実行し、stepIdx を0に戻す
+ * - level=beginner かつ attack.beginner が定義されていれば、setup 後にラベルとステップ文言を差し替える
  */
-export function StageView({ attack }: Props) {
+export function StageView({ attack, level }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const stageInstance = useRef<Stage | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
   // この再構築カウンタで Stage を作り直す
   const [rebuildKey, setRebuildKey] = useState(0);
 
+  const useBeginner = level === 'beginner' && !!attack.beginner;
+  const beginner = attack.beginner;
+
   useEffect(() => {
     if (!stageRef.current) return;
     const stage = new Stage(stageRef.current);
     attack.setup(stage);
+    if (useBeginner && beginner) {
+      Object.entries(beginner.actorLabels ?? {}).forEach(([id, label]) => stage.setActorLabel(id, label));
+      Object.entries(beginner.groupLabels ?? {}).forEach(([id, label]) => stage.setGroupLabel(id, label));
+      Object.entries(beginner.connectionLabels ?? {}).forEach(([id, label]) => stage.setConnectionLabel(id, label));
+    }
     stageInstance.current = stage;
     return () => {
       stage.dispose();
       stageInstance.current = null;
     };
-  }, [attack, rebuildKey]);
+  }, [attack, rebuildKey, useBeginner, beginner]);
+
+  // level 切替時はステージ再構築 + ステップ位置リセット
+  useEffect(() => {
+    setStepIdx(0);
+    setRebuildKey((k) => k + 1);
+  }, [level]);
 
   const total = attack.steps.length;
-  const currentStep = stepIdx > 0 ? attack.steps[stepIdx - 1] : null;
-  const nextStep = stepIdx < total ? attack.steps[stepIdx] : null;
+  const proCurrent = stepIdx > 0 ? attack.steps[stepIdx - 1] : null;
+  const proNext = stepIdx < total ? attack.steps[stepIdx] : null;
+  const beginnerCurrent = useBeginner && beginner && stepIdx > 0 ? beginner.steps[stepIdx - 1] : null;
+  const beginnerNext = useBeginner && beginner && stepIdx < total ? beginner.steps[stepIdx] : null;
+  const currentStep = beginnerCurrent ?? proCurrent;
+  const nextStep = beginnerNext ?? proNext;
   const finished = stepIdx >= total;
 
   const onNext = () => {
     const stage = stageInstance.current;
-    if (!stage || !nextStep) return;
+    const proStep = proNext;
+    if (!stage || !proStep) return;
     stage.clearTimers();
     stage.clearPackets();
-    nextStep.run(stage);
+    proStep.run(stage);
     setStepIdx(stepIdx + 1);
   };
 
@@ -52,24 +73,20 @@ export function StageView({ attack }: Props) {
   return (
     <>
       <div className="stage" ref={stageRef} />
-      <div className="step-info">
+      <div className={`step-info${finished ? ' is-finished' : ''}`}>
         <div className="step-progress">
           ステップ {stepIdx} / {total}
           {finished && <span className="finished-tag">完了</span>}
         </div>
         <div className="step-title">
-          {finished
-            ? '攻撃シナリオの再生が完了しました'
+          {finished && currentStep
+            ? <><span className="result-tag">結果</span>{currentStep.title}</>
             : currentStep
               ? `現在のフェーズ: ${currentStep.title}`
               : `次のフェーズ: ${nextStep?.title ?? ''}`}
         </div>
         <div className="step-desc">
-          {finished
-            ? '「リセット」で最初から再生できます'
-            : currentStep
-              ? currentStep.description
-              : nextStep?.description}
+          {currentStep ? currentStep.description : nextStep?.description}
         </div>
       </div>
       <div className="controls">
@@ -77,7 +94,7 @@ export function StageView({ attack }: Props) {
           {stepIdx === 0 ? '▶ 開始' : finished ? '完了' : '次へ ▶'}
         </button>
         <button type="button" className="secondary" onClick={onReset}>
-          リセット
+          {finished ? '最初から見る' : 'リセット'}
         </button>
       </div>
     </>

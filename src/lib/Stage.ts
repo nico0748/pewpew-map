@@ -20,6 +20,8 @@ interface PacketOptions {
 }
 
 export interface GroupOptions {
+  /** beginner モードでラベル差し替えを行う際の識別子。 */
+  id?: string;
   /** 左上 (0..1) と幅・高さ (0..1) で領域を指定する。 */
   x: number;
   y: number;
@@ -31,6 +33,8 @@ export interface GroupOptions {
 }
 
 export interface ConnectionOptions {
+  /** beginner モードでラベル差し替えを行う際の識別子。 */
+  id?: string;
   /** 既存関係の表現に。デフォルト false (実線)。 */
   dashed?: boolean;
   /** 'flow' は経路の主導線、'aux' は補助線、'attack' は攻撃経路。 */
@@ -53,7 +57,9 @@ export class Stage {
   private actors = new Map<string, HTMLElement>();
   private positions = new Map<string, ActorPos>();
   private groups: HTMLElement[] = [];
+  private groupsById = new Map<string, HTMLElement>();
   private connectionsSvg: SVGSVGElement | null = null;
+  private connectionLabelsById = new Map<string, SVGTextElement>();
   private timers: number[] = [];
 
   constructor(root: HTMLElement) {
@@ -102,6 +108,7 @@ export class Stage {
     }
     this.root.appendChild(div);
     this.groups.push(div);
+    if (opts.id) this.groupsById.set(opts.id, div);
   }
 
   /** アクター同士を結ぶ静的な線を描画する。pos % を使うのでレイアウト前後に依存しない。 */
@@ -129,7 +136,31 @@ export class Stage {
       text.setAttribute('dy', '-4');
       text.textContent = opts.label;
       svg.appendChild(text);
+      if (opts.id) this.connectionLabelsById.set(opts.id, text);
     }
+  }
+
+  /** beginner モード等でアクター名を差し替える。指定 id がなければ何もしない。 */
+  setActorLabel(id: string, label: string): void {
+    const el = this.actors.get(id);
+    if (!el) return;
+    const labelEl = el.querySelector('.label');
+    if (labelEl) labelEl.textContent = label;
+  }
+
+  /** addGroup({ id }) で登録したグループのラベルを差し替える。 */
+  setGroupLabel(id: string, label: string): void {
+    const el = this.groupsById.get(id);
+    if (!el) return;
+    const labelEl = el.querySelector('.group-label');
+    if (labelEl) labelEl.textContent = label;
+  }
+
+  /** addConnection({ id, label }) で登録した接続線のラベルを差し替える。 */
+  setConnectionLabel(id: string, label: string): void {
+    const text = this.connectionLabelsById.get(id);
+    if (!text) return;
+    text.textContent = label;
   }
 
   private ensureConnectionsSvg(): SVGSVGElement {
@@ -193,6 +224,8 @@ export class Stage {
     this.positions.clear();
     this.groups.forEach((g) => g.remove());
     this.groups = [];
+    this.groupsById.clear();
+    this.connectionLabelsById.clear();
     if (this.connectionsSvg) {
       this.connectionsSvg.remove();
       this.connectionsSvg = null;
