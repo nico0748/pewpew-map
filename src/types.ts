@@ -60,4 +60,9 @@ export type PictogramName =
   | 'warning'
   | 'bot'
   | 'shield'
-  | 'key';
+  | 'key'
+  | 'cloud'
+  | 'router'
+  | 'firewall'
+  | 'code'
+  | 'mobile';

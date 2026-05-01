@@ -29,6 +29,7 @@ export const ransomware: AttackDefinition = {
     { head: 'バックアップの "復元テスト":', body: '取得しているだけでは無意味。復元できることを定期検証する。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.22, y: 0.02, w: 0.50, h: 0.96, label: '社内ネットワーク', variant: 'victim' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.08, y: 0.5  }, label: '攻撃者' });
     stage.addActor('vpn',      { pict: 'server',   pos: { x: 0.32, y: 0.5  }, label: 'VPN/RDP' });
     stage.addActor('doc1',     { pict: 'document', pos: { x: 0.58, y: 0.18 } });
@@ -36,6 +37,7 @@ export const ransomware: AttackDefinition = {
     stage.addActor('doc3',     { pict: 'document', pos: { x: 0.58, y: 0.66 } });
     stage.addActor('doc4',     { pict: 'document', pos: { x: 0.58, y: 0.90 } });
     stage.addActor('ransom',   { pict: 'warning',  pos: { x: 0.85, y: 0.5  }, label: '身代金要求' });
+    docs.forEach((d) => stage.addConnection('vpn', d, { variant: 'aux', dashed: true }));
   },
   steps: [
     {

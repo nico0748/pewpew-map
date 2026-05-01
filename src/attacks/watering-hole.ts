@@ -28,6 +28,8 @@ export const wateringHole: AttackDefinition = {
     { head: '監査ログのSaaS集約:', body: 'サーバ侵害でログを消されても外部に残るよう、ログを即時送出。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.46, y: 0.02, w: 0.20, h: 0.62, label: '対象組織', variant: 'victim' });
+    stage.addGroup({ x: 0.74, y: 0.16, w: 0.22, h: 0.36, label: '攻撃者ペイロード置き場', variant: 'attack' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.05, y: 0.5  }, label: '攻撃者' });
     stage.addActor('site',     { pict: 'browser',  pos: { x: 0.30, y: 0.5  }, label: '業界サイト(改ざん)' });
     stage.addActor('emp1',     { pict: 'user',     pos: { x: 0.55, y: 0.18 }, label: '対象組織A 従業員' });

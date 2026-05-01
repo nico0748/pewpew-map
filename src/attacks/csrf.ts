@@ -26,11 +26,14 @@ export const csrf: AttackDefinition = {
     { head: 'モバイルAPIのトークン:', body: 'Cookie認証ではなくAuthorizationヘッダにすればCSRFリスクは大幅減。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.02, y: 0.04, w: 0.50, h: 0.36, label: '罠ドメイン', variant: 'attack' });
+    stage.addGroup({ x: 0.02, y: 0.60, w: 0.50, h: 0.36, label: '被害者側', variant: 'victim' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.20 }, label: '攻撃者' });
     stage.addActor('trap',     { pict: 'browser',  pos: { x: 0.40, y: 0.20 }, label: '罠サイト' });
     stage.addActor('victim',   { pict: 'user',     pos: { x: 0.10, y: 0.78 }, label: '被害者(ログイン中)' });
     stage.addActor('vbrowser', { pict: 'browser',  pos: { x: 0.40, y: 0.78 }, label: '被害者ブラウザ' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.85, y: 0.5  }, label: '正規サービス' });
+    stage.addConnection('vbrowser', 'app', { variant: 'flow', dashed: true, label: 'Cookie保持中' });
   },
   steps: [
     {

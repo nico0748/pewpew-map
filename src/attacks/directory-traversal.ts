@@ -26,10 +26,14 @@ export const directoryTraversal: AttackDefinition = {
     { head: 'ライブラリ任せにしない:', body: '"安全な静的ファイル配信" を謳うミドルウェアでも設定ミスで穴が開く。テストでカバーする。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.30, y: 0.04, w: 0.66, h: 0.30, label: '公開領域', variant: 'infra' });
+    stage.addGroup({ x: 0.30, y: 0.62, w: 0.66, h: 0.34, label: '本来非公開', variant: 'attack' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5  }, label: '攻撃者' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.45, y: 0.5  }, label: 'Webアプリ' });
     stage.addActor('public',   { pict: 'document', pos: { x: 0.78, y: 0.18 }, label: '/var/www/public' });
     stage.addActor('secret',   { pict: 'document', pos: { x: 0.78, y: 0.78 }, label: '/etc/shadow' });
+    stage.addConnection('app', 'public', { variant: 'flow' });
+    stage.addConnection('app', 'secret', { variant: 'aux', dashed: true });
   },
   steps: [
     {

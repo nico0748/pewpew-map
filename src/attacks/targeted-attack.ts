@@ -28,12 +28,15 @@ export const targetedAttack: AttackDefinition = {
     { head: 'インシデント想定の設計:', body: 'アプリ側でも"侵害された前提"の権限分離・監査ログを実装する。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.36, y: 0.04, w: 0.42, h: 0.92, label: '対象組織', variant: 'victim' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.05, y: 0.5  }, label: 'APTグループ' });
     stage.addActor('mail',     { pict: 'email',    pos: { x: 0.25, y: 0.5  }, label: '標的型メール' });
     stage.addActor('employee', { pict: 'user',     pos: { x: 0.45, y: 0.5  }, label: '従業員' });
     stage.addActor('endpoint', { pict: 'browser',  pos: { x: 0.65, y: 0.20 }, label: '感染端末' });
     stage.addActor('ad',       { pict: 'server',   pos: { x: 0.65, y: 0.80 }, label: '社内AD/ファイルサーバ' });
     stage.addActor('exfil',    { pict: 'document', pos: { x: 0.90, y: 0.5  }, label: '機密データ' });
+    stage.addConnection('endpoint', 'ad', { variant: 'aux', dashed: true });
+    stage.addConnection('ad', 'exfil', { variant: 'aux', dashed: true });
   },
   steps: [
     {

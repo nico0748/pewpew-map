@@ -102,6 +102,7 @@ a:hover { text-decoration: underline; }
   height: 64px;
   display: grid;
   place-items: center;
+  z-index: 3;
 }
 .stage .actor .label {
   position: absolute;
@@ -112,21 +113,94 @@ a:hover { text-decoration: underline; }
   color: var(--fg-dim);
   white-space: nowrap;
 }
-.stage svg.pict { width: 100%; height: 100%; }
+.stage svg.pict {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 3px currentColor);
+  transition: filter 0.3s ease;
+}
+.stage .actor:hover svg.pict {
+  filter: drop-shadow(0 0 8px currentColor);
+}
 
-.pict-attacker { color: var(--danger); }
-.pict-user     { color: var(--accent); }
-.pict-server   { color: #b794f4; }
-.pict-db       { color: #ffb454; }
-.pict-browser  { color: var(--accent); }
-.pict-email    { color: var(--warn); }
-.pict-shield   { color: var(--ok); }
-.pict-warn     { color: var(--warn); }
-.pict-bot      { color: var(--danger); }
-.pict-doc      { color: var(--fg-dim); }
-.pict-lock     { color: var(--ok); }
-.pict-unlock   { color: var(--danger); }
-.pict-key      { color: var(--warn); }
+.pict-attacker { color: #ff6b6b; }
+.pict-user     { color: #74b9ff; }
+.pict-server   { color: #a29bfe; }
+.pict-db       { color: #ffc048; }
+.pict-browser  { color: #74b9ff; }
+.pict-email    { color: #fdcb6e; }
+.pict-shield   { color: #55efc4; }
+.pict-warn     { color: #fdcb6e; }
+.pict-bot      { color: #ff6b6b; }
+.pict-doc      { color: #b2bec3; }
+.pict-lock     { color: #55efc4; }
+.pict-unlock   { color: #ff6b6b; }
+.pict-key      { color: #ffeaa7; }
+.pict-cloud    { color: #81ecec; }
+.pict-router   { color: #a29bfe; }
+.pict-firewall { color: #55efc4; }
+.pict-code     { color: #b2bec3; }
+.pict-mobile   { color: #74b9ff; }
+
+.stage .group {
+  position: absolute;
+  border: 1px dashed rgba(154, 164, 178, 0.35);
+  border-radius: 12px;
+  background: rgba(154, 164, 178, 0.04);
+  pointer-events: none;
+  z-index: 1;
+}
+.stage .group.group-attack {
+  border-color: rgba(255, 93, 98, 0.5);
+  background: rgba(255, 93, 98, 0.06);
+}
+.stage .group.group-victim {
+  border-color: rgba(88, 166, 255, 0.45);
+  background: rgba(88, 166, 255, 0.05);
+}
+.stage .group.group-infra {
+  border-color: rgba(183, 148, 244, 0.45);
+  background: rgba(183, 148, 244, 0.05);
+}
+.stage .group .group-label {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  padding: 1px 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--fg-dim);
+  background: var(--bg-elev);
+  border-radius: 999px;
+}
+.stage .group.group-attack  .group-label { color: var(--danger); }
+.stage .group.group-victim  .group-label { color: var(--accent); }
+.stage .group.group-infra   .group-label { color: #b794f4; }
+
+.stage svg.connections {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 2;
+}
+.stage .conn {
+  stroke: rgba(154, 164, 178, 0.4);
+  stroke-width: 1.5;
+  fill: none;
+}
+.stage .conn.conn-flow   { stroke: rgba(88, 166, 255, 0.55); }
+.stage .conn.conn-aux    { stroke: rgba(154, 164, 178, 0.35); }
+.stage .conn.conn-attack { stroke: rgba(255, 93, 98, 0.6); }
+.stage .conn.dashed      { stroke-dasharray: 4 4; }
+.stage .conn-label {
+  fill: var(--fg-dim);
+  font-size: 10px;
+  font-family: var(--font-jp);
+  paint-order: stroke;
+  stroke: var(--bg-elev);
+  stroke-width: 3;
+}
 
 .packet {
   position: absolute;
@@ -136,6 +210,7 @@ a:hover { text-decoration: underline; }
   background: var(--danger);
   box-shadow: 0 0 12px var(--danger);
   pointer-events: none;
+  z-index: 4;
 }
 .packet.benign { background: var(--accent); box-shadow: 0 0 12px var(--accent); }
 .packet.payload {
