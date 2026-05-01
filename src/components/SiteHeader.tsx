@@ -9,8 +9,13 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <div className="site-header-row">
-        <h1>Cyber Attack Visualization</h1>
-        <LevelToggle />
+        <h1>
+          <Link to="/" className="site-title-link">Cyber Attack Visualization</Link>
+        </h1>
+        <div className="site-header-actions">
+          <Link to="/about" className="site-nav-link">このアプリについて</Link>
+          <LevelToggle />
+        </div>
       </div>
       <p className="lead">
         {onTop ? (
