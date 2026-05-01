@@ -28,16 +28,16 @@ export const passwordList: AttackDefinition = {
     { head: '管理者向けUI:', body: '不審ログインの俯瞰ダッシュボードを用意し、初動を素早く。' }
   ],
   setup(stage) {
-    stage.addGroup({ x: 0.42, y: 0.02, w: 0.54, h: 0.96, label: '標的サービス', variant: 'victim' });
+    stage.addGroup({ id: 'target', x: 0.42, y: 0.02, w: 0.54, h: 0.96, label: '標的サービス', variant: 'victim' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.05, y: 0.5  }, label: '攻撃者' });
     stage.addActor('list',     { pict: 'document', pos: { x: 0.25, y: 0.5  }, label: '流出ID/PWリスト' });
     stage.addActor('login',    { pict: 'server',   pos: { x: 0.55, y: 0.5  }, label: 'ログインAPI' });
     stage.addActor('a1',       { pict: 'lock',     pos: { x: 0.85, y: 0.18 }, label: 'アカウント1' });
     stage.addActor('a2',       { pict: 'lock',     pos: { x: 0.85, y: 0.50 }, label: 'アカウント2' });
     stage.addActor('a3',       { pict: 'lock',     pos: { x: 0.85, y: 0.82 }, label: 'アカウント3' });
-    stage.addConnection('login', 'a1', { variant: 'flow', dashed: true });
-    stage.addConnection('login', 'a2', { variant: 'flow', dashed: true });
-    stage.addConnection('login', 'a3', { variant: 'flow', dashed: true });
+    stage.addConnection('login', 'a1', { id: 'auth1', variant: 'flow', dashed: true });
+    stage.addConnection('login', 'a2', { id: 'auth2', variant: 'flow', dashed: true });
+    stage.addConnection('login', 'a3', { id: 'auth3', variant: 'flow', dashed: true });
   },
   steps: [
     {
@@ -73,5 +73,111 @@ export const passwordList: AttackDefinition = {
         stage.sendPacket('login', 'attacker', { duration: 1100, payload: '成功した認証情報' });
       }
     }
-  ]
+  ],
+  beginner: {
+    summary:
+      '他のサービスから流出したIDとパスワードのリストを使って、別のサービスに自動ログインを試みる攻撃。',
+    caseStudy:
+      '他社サービスから流出したIDとパスワードの組み合わせを使って、別のサービスにログインを試みる手口です。日本でも大手SNS・通販・ポイントサイトで継続的に発生していて、利用者がパスワードを使い回している限り被害が広がり続ける構造的な問題になっています。',
+    damage: [
+      {
+        head: '同じパスワードを使い回している人が次々狙われる:',
+        body: '違うサービスで同じパスワードを使い回している人のアカウントが、片っ端から乗っ取られます。'
+      },
+      {
+        head: 'ポイント・残高を換金される:',
+        body: 'マイル・ポイント・ギフト券のような「換金しやすいもの」を持ち去られます。'
+      },
+      {
+        head: '検知しにくい:',
+        body: '攻撃者は「正しいIDとパスワード」でログインしてくるので、不正ログインだと気付きにくく、防御の網にかかりにくい。'
+      },
+      {
+        head: '自社が漏洩したと誤解される:',
+        body: '実際には他社からの漏洩なのに、「うちのサービスから流出した」と利用者から誤解されてしまうこともあります。'
+      }
+    ],
+    defense: [
+      {
+        head: '多要素認証(MFA)を必須に:',
+        body: 'IDとパスワードだけでは入れないように、SMSやアプリ通知などの追加確認を必ず要求します。最も効果的な対策です。'
+      },
+      {
+        head: '漏洩済みのパスワードを弾く:',
+        body: '「過去の漏洩データに含まれているパスワード」を判定する仕組み(Have I Been Pwned のAPIなど)を組み合わせて、登録時や変更時に弾きます。'
+      },
+      {
+        head: '初回端末・海外接続には追加認証:',
+        body: '初めて使う端末や、いつもと違う国・ネットワーク事業者(ASN)からのログインには、追加の本人確認を要求します。'
+      },
+      {
+        head: 'CAPTCHA / Bot対策:',
+        body: '機械的な一斉試行を妨害するため CAPTCHA(画像認証)や Bot 対策を入れます。'
+      },
+      {
+        head: '状況に応じて認証強度を上げる(リスクベース認証):',
+        body: '怪しさのスコアに応じて、ワンタイムコードや本人確認を挟みます。'
+      }
+    ],
+    devNote: [
+      {
+        head: 'パスキーを推奨する:',
+        body: '可能ならパスワードをやめて、パスキー(WebAuthn)で認証する作りに移行できれば根本的に解決します。'
+      },
+      {
+        head: 'ログイン成功通知メールを送る:',
+        body: '見覚えのない端末からのログイン成功時に必ずメールやアプリ通知を送り、本人が早く気付けるようにします。'
+      },
+      {
+        head: '「ログイン成功」も慎重に監視:',
+        body: '同じIPや同じブラウザ情報から、たくさんのアカウントの「成功」が並ぶようなパターンを検知してアラート化します。'
+      },
+      {
+        head: '登録時に弱いパスワードを弾くUI:',
+        body: 'zxcvbn のようなライブラリや漏洩DB連携で、登録・変更の時点で弱い・既知漏洩パスワードを使わせない。'
+      },
+      {
+        head: '管理者向けの不審ログイン俯瞰画面:',
+        body: '不審ログインを一覧で見られる管理ダッシュボードを用意して、初動を早くします。'
+      }
+    ],
+    steps: [
+      {
+        title: '攻撃者が他社から流出したID/PWリストを入手',
+        description:
+          '攻撃者は、他社サービスから流出した「IDとパスワードの組み合わせ」リストを、闇サイトなどで入手します。'
+      },
+      {
+        title: '別のサービスへ自動でログイン試行',
+        description:
+          'その組み合わせを、別の(まだ被害が出ていない)サービスのログイン画面に対して、機械的に投入していきます。'
+      },
+      {
+        title: 'パスワード使い回しの人が次々突破される',
+        description:
+          '別サービスでも同じパスワードを使っている人のアカウントは、次々ログインに成功してしまいます。'
+      },
+      {
+        title: '成功したアカウントが攻撃者の手に',
+        description:
+          '攻撃者は「成功した組み合わせ」だけを抽出し、ポイント不正利用や追加攻撃に使います。MFA + 漏洩PW突合の組み合わせで防げます。'
+      }
+    ],
+    actorLabels: {
+      attacker: '攻撃者',
+      list: '他社から流出したID/PWのリスト',
+      login: 'ログイン受付サーバ',
+      a1: 'アカウント1',
+      a2: 'アカウント2',
+      a3: 'アカウント3'
+    },
+    groupLabels: {
+      target: '攻撃対象のサービス'
+    },
+    connectionLabels: {
+      auth1: '認証チェック',
+      auth2: '認証チェック',
+      auth3: '認証チェック'
+    }
+  }
 };

@@ -26,14 +26,14 @@ export const directoryTraversal: AttackDefinition = {
     { head: 'ライブラリ任せにしない:', body: '"安全な静的ファイル配信" を謳うミドルウェアでも設定ミスで穴が開く。テストでカバーする。' }
   ],
   setup(stage) {
-    stage.addGroup({ x: 0.30, y: 0.04, w: 0.66, h: 0.30, label: '公開領域', variant: 'infra' });
-    stage.addGroup({ x: 0.30, y: 0.62, w: 0.66, h: 0.34, label: '本来非公開', variant: 'attack' });
+    stage.addGroup({ id: 'public-area', x: 0.30, y: 0.04, w: 0.66, h: 0.30, label: '公開領域', variant: 'infra' });
+    stage.addGroup({ id: 'private-area', x: 0.30, y: 0.62, w: 0.66, h: 0.34, label: '本来非公開', variant: 'attack' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5  }, label: '攻撃者' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.45, y: 0.5  }, label: 'Webアプリ' });
     stage.addActor('public',   { pict: 'document', pos: { x: 0.78, y: 0.18 }, label: '/var/www/public' });
     stage.addActor('secret',   { pict: 'document', pos: { x: 0.78, y: 0.78 }, label: '/etc/shadow' });
-    stage.addConnection('app', 'public', { variant: 'flow' });
-    stage.addConnection('app', 'secret', { variant: 'aux', dashed: true });
+    stage.addConnection('app', 'public', { id: 'normal', variant: 'flow' });
+    stage.addConnection('app', 'secret', { id: 'leak', variant: 'aux', dashed: true });
   },
   steps: [
     {
@@ -65,5 +65,101 @@ export const directoryTraversal: AttackDefinition = {
         stage.sendPacket('secret', 'attacker', { duration: 1300, payload: 'ハッシュ化済PW一覧' });
       }
     }
-  ]
+  ],
+  beginner: {
+    summary:
+      'URL に「../」のような「上のフォルダに戻れ」という指示を混ぜ込まれて、見せてはいけない場所のファイルまで読まれてしまう攻撃。',
+    caseStudy:
+      '「ファイルダウンロード機能」のURLパラメータ `?file=report.pdf` の代わりに `../../../../etc/passwd` を入れて、サーバ内部の認証用ファイルや設定ファイルを取得されてしまった事案や、画像配信URL経由でアプリの秘密鍵が流出した事例が報告されています。',
+    damage: [
+      {
+        head: '機密ファイルが流出:',
+        body: 'パスワード情報が入った OS のファイルや、アプリの設定ファイル(`.env` など機密の塊)を取得されてしまいます。'
+      },
+      {
+        head: '秘密鍵を抜かれる:',
+        body: 'SSH の秘密鍵や API キーを抜き取られて、他のサービス・サーバへの侵入につながります。'
+      },
+      {
+        head: 'ソースコードが流出:',
+        body: 'アプリ本体のコードや SQL、テンプレートまで取得されてしまい、追加攻撃の材料にされます。'
+      }
+    ],
+    defense: [
+      {
+        head: 'パスを「整えてから」許可された場所に収まっているか確認:',
+        body: '受け取ったパスを最終的な絶対パス(realpath)に直してから、「アプリが公開してよいフォルダの中に収まっているか」を必ず確認します。'
+      },
+      {
+        head: 'ファイル名の代わりにIDで指定:',
+        body: 'URL ではファイル名ではなく `?id=42` のような番号を受け取り、サーバ側のテーブルから本当のファイル名を引いてくる作りにすれば、ユーザがパスを直接指定する余地がなくなります。'
+      },
+      {
+        head: '許可する拡張子を決める:',
+        body: '`.pdf` や `.png` のように決まった拡張子だけを許可。シンボリックリンク(別の場所への近道)を辿らない設定もセットで。'
+      },
+      {
+        head: '弱い権限のユーザでアプリを動かす:',
+        body: 'Webプロセスの読み込み権限を、アプリ用フォルダだけに絞っておけば、万一抜けても被害が広がりません。'
+      }
+    ],
+    devNote: [
+      {
+        head: 'URLのデコード後に再チェック:',
+        body: '`%2e%2e%2f` (=`../` を URL エンコードしたもの)や、二重にエンコードされた `%252e` などの抜け穴を見落とさないように、デコードしてから検証します。'
+      },
+      {
+        head: 'OSの違いを意識する:',
+        body: 'Windows ではバックスラッシュ (`\\`) や `C:\\...` のドライブ指定もパス区切りになります。両方を考慮。'
+      },
+      {
+        head: 'NUL文字で切られる罠:',
+        body: '`file.png\\0/etc/passwd` のように途中に NUL 文字を仕込まれて拡張子チェックを潜られる手口も。NUL や制御文字は弾く。'
+      },
+      {
+        head: 'シンボリックリンクで外に出られないように:',
+        body: 'アップロード領域に「外側へのリンク」を作られると、そこから外に出られてしまいます。マウントオプションでリンク追跡を制限。'
+      },
+      {
+        head: 'ライブラリを過信しない:',
+        body: '「安全な静的ファイル配信」を謳うミドルウェアでも、設定を間違えると穴が空きます。テストで実際に `../` が通らないことを確認しましょう。'
+      }
+    ],
+    steps: [
+      {
+        title: '攻撃者がURLに「../」を仕込む',
+        description:
+          'URL のパラメータに `../../../../etc/shadow` のような、「上の階層に戻る」という意味の `../` を何回も含めた値を指定します。'
+      },
+      {
+        title: 'アプリがパスを整えずにファイルを開く',
+        description:
+          'アプリは公開フォルダ内で開くつもりが、`../` を解釈して、想定よりずっと上の階層のファイルに到達してしまいます。'
+      },
+      {
+        title: '本来見せられない場所のファイルが読まれる',
+        description:
+          'パスワード情報を保管している `/etc/shadow` のような、本来 Web アプリから読むべきでないファイルまで読み出されてしまいます。'
+      },
+      {
+        title: '攻撃者にファイル中身が渡る',
+        description:
+          'ファイルの中身がレスポンスとして攻撃者の手に渡ります。「絶対パスに直してから許可フォルダ内か確認」と「IDで間接的に参照」をすれば防げます。'
+      }
+    ],
+    actorLabels: {
+      attacker: '攻撃者',
+      app: 'アプリ(画面の裏で動くプログラム)',
+      public: '公開していい場所のファイル',
+      secret: '本来見せてはいけないファイル'
+    },
+    groupLabels: {
+      'public-area': '公開していい場所',
+      'private-area': '本来見せてはいけない場所'
+    },
+    connectionLabels: {
+      normal: '本来のファイル参照',
+      leak: '抜け穴で参照'
+    }
+  }
 };

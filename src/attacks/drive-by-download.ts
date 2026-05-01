@@ -28,14 +28,14 @@ export const driveByDownload: AttackDefinition = {
     { head: 'インシデント時の連絡経路:', body: '改ざん検知時のCDNパージ・告知手順をRunbook化しておく。' }
   ],
   setup(stage) {
-    stage.addGroup({ x: 0.50, y: 0.04, w: 0.46, h: 0.92, label: '攻撃者インフラ', variant: 'attack' });
+    stage.addGroup({ id: 'attacker-infra', x: 0.50, y: 0.04, w: 0.46, h: 0.92, label: '攻撃者インフラ', variant: 'attack' });
     stage.addActor('victim',  { pict: 'user',     pos: { x: 0.10, y: 0.5  }, label: '利用者' });
     stage.addActor('site',    { pict: 'browser',  pos: { x: 0.36, y: 0.5  }, label: '改ざんサイト' });
     stage.addActor('exploit', { pict: 'warning',  pos: { x: 0.62, y: 0.5  }, label: 'Exploit Kit' });
     stage.addActor('payload', { pict: 'document', pos: { x: 0.85, y: 0.22 }, label: 'マルウェア' });
     stage.addActor('cnc',     { pict: 'attacker', pos: { x: 0.85, y: 0.78 }, label: '攻撃者C&C' });
-    stage.addConnection('site', 'exploit', { variant: 'attack', dashed: true, label: 'redirect' });
-    stage.addConnection('exploit', 'payload', { variant: 'attack', dashed: true });
+    stage.addConnection('site', 'exploit', { id: 'redirect', variant: 'attack', dashed: true, label: 'redirect' });
+    stage.addConnection('exploit', 'payload', { id: 'drop', variant: 'attack', dashed: true });
   },
   steps: [
     {
@@ -69,5 +69,109 @@ export const driveByDownload: AttackDefinition = {
         stage.sendPacket('victim', 'cnc', { duration: 1100, payload: 'beacon' });
       }
     }
-  ]
+  ],
+  beginner: {
+    summary:
+      'いつものWebサイトを開いただけで、勝手にウイルスをダウンロードされて自動でインストールされてしまう攻撃。',
+    caseStudy:
+      '攻撃者にこっそり改ざんされた正規サイトや、汚染されたネット広告(Malvertising と呼びます)を経由して、ページを開いただけでブラウザの弱点を突かれ、ウイルスが自動的にダウンロード・実行される事案が今も続いています。',
+    damage: [
+      {
+        head: 'ウイルス感染:',
+        body: '銀行情報を盗むタイプ、行動を覗き見るタイプ、ファイルを暗号化して身代金を要求するタイプなど、各種ウイルスが知らないうちに入ります。'
+      },
+      {
+        head: '保存情報の流出:',
+        body: 'ブラウザに保存したパスワード・クッキー・暗号通貨ウォレットを抜き取られます。'
+      },
+      {
+        head: '攻撃の踏み台にされる:',
+        body: '感染端末が攻撃者のネットワーク(ボットネット)の手駒にされたり、社内ネットワークへの侵入の足場にされます。'
+      },
+      {
+        head: '広告経由で被害が拡散:',
+        body: '正規のサイトでも、配信される広告が汚染されているだけで被害が一気に広がります。'
+      }
+    ],
+    defense: [
+      {
+        head: 'ブラウザ・OSを最新に保つ:',
+        body: '自動更新を有効にしておけば、新しい弱点(ゼロデイ)が見つかってもすぐ穴がふさがれます。'
+      },
+      {
+        head: 'ウイルス対策ソフト/EDRを入れる:',
+        body: '怪しいダウンロードや不審な振る舞いを検知して止めるソフトを入れます。'
+      },
+      {
+        head: '広告ブロック / DNSフィルタ:',
+        body: '怪しいドメインへの接続自体を端末側で遮断する仕組みを使います。'
+      },
+      {
+        head: 'ブラウザの保護機能を有効化:',
+        body: 'Windows の SmartScreen、Chrome の Safe Browsing など、危ないサイトを警告する機能をオンに。'
+      },
+      {
+        head: '日常作業は管理者権限で行わない:',
+        body: 'ウイルスはログイン中のユーザの権限で動きます。普段使いのアカウントを管理者権限にしないだけで被害が小さくできます。'
+      }
+    ],
+    devNote: [
+      {
+        head: '外部の JS/CSS には改ざん検知を付ける(SRI):',
+        body: '`<script integrity="sha384-..." src="https://cdn..."/>` のように、ファイルの中身が変わったら読み込まないようにする仕組み(Subresource Integrity)を使います。'
+      },
+      {
+        head: 'CSPで読み込み元を絞る:',
+        body: 'CSP(コンテンツの読み込み制限ヘッダ)で、自分のサイトに読み込んでよい JS / 画像のドメインを限定します。広告経由の改ざんの影響を絞れます。'
+      },
+      {
+        head: '広告タグや埋め込みSDKは継続して評価:',
+        body: '一度入れたら終わりにせず、配信元の信頼性を継続して見直します。'
+      },
+      {
+        head: 'iframe には sandbox 属性:',
+        body: '外部コンテンツを iframe で埋め込むときは `sandbox` 属性を付けて、その中で実行できることを最小限に絞ります。'
+      },
+      {
+        head: '改ざん時の手順を準備:',
+        body: 'もし改ざんを検知したらどう CDN のキャッシュを消すか、利用者にどう告知するか、手順書(Runbook)を事前に作っておきます。'
+      }
+    ],
+    steps: [
+      {
+        title: '利用者がいつもの正規サイトを開く',
+        description:
+          '利用者は普段通りのサイトを開きます。が、そのサイトは攻撃者にこっそり改ざんされています。'
+      },
+      {
+        title: '裏で攻撃用サイトに自動転送',
+        description:
+          '改ざんされたページに仕込まれたプログラムが、利用者のブラウザを攻撃者のサイト(Exploit Kit と呼ばれる攻撃道具一式)へリダイレクトさせます。'
+      },
+      {
+        title: 'ブラウザの弱点を突いてウイルスを送り込む',
+        description:
+          '攻撃道具がブラウザやプラグインの弱点を突いて、ウイルス本体を被害者の端末に自動的にダウンロード・実行させます。'
+      },
+      {
+        title: '感染端末が裏で攻撃者と通信を始める',
+        description:
+          '感染が成立すると、端末は裏で攻撃者の指令サーバ(C&C)と通信して、追加指示を受けたり情報を送り出したりします。'
+      }
+    ],
+    actorLabels: {
+      victim: '利用者',
+      site: 'こっそり改ざんされたサイト',
+      exploit: '攻撃道具一式 (Exploit Kit)',
+      payload: 'ウイルス本体',
+      cnc: '攻撃者の指令サーバ'
+    },
+    groupLabels: {
+      'attacker-infra': '攻撃者の道具'
+    },
+    connectionLabels: {
+      redirect: '裏で自動転送',
+      drop: 'ウイルスを配布'
+    }
+  }
 };

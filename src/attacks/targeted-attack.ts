@@ -28,15 +28,15 @@ export const targetedAttack: AttackDefinition = {
     { head: 'インシデント想定の設計:', body: 'アプリ側でも"侵害された前提"の権限分離・監査ログを実装する。' }
   ],
   setup(stage) {
-    stage.addGroup({ x: 0.36, y: 0.04, w: 0.42, h: 0.92, label: '対象組織', variant: 'victim' });
+    stage.addGroup({ id: 'org', x: 0.36, y: 0.04, w: 0.42, h: 0.92, label: '対象組織', variant: 'victim' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.05, y: 0.5  }, label: 'APTグループ' });
     stage.addActor('mail',     { pict: 'email',    pos: { x: 0.25, y: 0.5  }, label: '標的型メール' });
     stage.addActor('employee', { pict: 'user',     pos: { x: 0.45, y: 0.5  }, label: '従業員' });
     stage.addActor('endpoint', { pict: 'browser',  pos: { x: 0.65, y: 0.20 }, label: '感染端末' });
     stage.addActor('ad',       { pict: 'server',   pos: { x: 0.65, y: 0.80 }, label: '社内AD/ファイルサーバ' });
     stage.addActor('exfil',    { pict: 'document', pos: { x: 0.90, y: 0.5  }, label: '機密データ' });
-    stage.addConnection('endpoint', 'ad', { variant: 'aux', dashed: true });
-    stage.addConnection('ad', 'exfil', { variant: 'aux', dashed: true });
+    stage.addConnection('endpoint', 'ad', { id: 'lateral', variant: 'aux', dashed: true });
+    stage.addConnection('ad', 'exfil', { id: 'collect', variant: 'aux', dashed: true });
   },
   steps: [
     {
@@ -83,5 +83,120 @@ export const targetedAttack: AttackDefinition = {
         stage.sendPacket('exfil', 'attacker', { duration: 1300, payload: 'encrypted exfil' });
       }
     }
-  ]
+  ],
+  beginner: {
+    summary:
+      '特定の会社や組織だけを狙って、何ヶ月もかけて静かに侵入を広げ、機密情報を持ち出していく長期型の攻撃。',
+    caseStudy:
+      '2015年、日本年金機構が「業務メールに見せかけた標的メール」をきっかけに侵入され、約125万件もの個人情報が流出しました。海外でも、国家が背後にいるとされる攻撃グループが、製造業・防衛・研究機関・自治体などに対して数ヶ月から数年もの長期にわたり潜んで情報を盗む事案が今も続いています。',
+    damage: [
+      {
+        head: '機密情報を継続的に盗まれる:',
+        body: '研究データ・設計図・経営情報・人事情報などが、長期間こっそり持ち出されます。'
+      },
+      {
+        head: '管理者権限まで奪われ組織全体が制圧:',
+        body: '社員のIDを管理する仕組み(Active Directory)を奪われ、組織全体のシステムが攻撃者の支配下に入ります。'
+      },
+      {
+        head: '裏口を仕掛けられて再侵入される:',
+        body: '通常のIT運用では気付けない裏口(バックドア)を残されて、何度でも入り直されます。'
+      },
+      {
+        head: '取引先まで被害が広がる:',
+        body: '盗まれた情報を使って、取引先や顧客に対する追加攻撃が仕掛けられます。'
+      }
+    ],
+    defense: [
+      {
+        head: '何重にも防御を重ねる(多層防御):',
+        body: '入口(メール・Web)、内部(端末・サーバ)、出口(外への通信)それぞれで「異常を見つける仕組み」を組み合わせます。'
+      },
+      {
+        head: '社内ネットも信用しない(ゼロトラスト):',
+        body: '「社内だから安全」という前提を捨て、すべての通信に対してその都度本人確認・許可確認を行う設計に切り替えます。'
+      },
+      {
+        head: '端末・ログ監視・対応チームの3点セット:',
+        body: 'EDR(端末上の不審な動きを見張るソフト)+ SIEM(ログを集約して相関分析する仕組み)+ SOC(24時間監視する専門チーム)で、潜伏しても気付ける体制を作ります。'
+      },
+      {
+        head: '訓練を定期実施:',
+        body: '標的型メールの訓練(疑似メールで反応を見る)や、机上演習(架空の侵入を想定した手順確認)を定期的にやります。'
+      },
+      {
+        head: '管理者権限を「常時持たない」運用:',
+        body: '管理者アカウントを常時使うのではなく、必要な時だけ申請・貸出・記録・自動失効する仕組み(PAM)で運用します。'
+      }
+    ],
+    devNote: [
+      {
+        head: 'ログを集めて長期保存:',
+        body: '攻撃の全体像を後から再現できるように、ログイン履歴・プロキシのログ・端末監視ソフト(EDR)のログを長期保管します。'
+      },
+      {
+        head: '社内→外部通信も監視(出口対策):',
+        body: '社内から外への通信を全部プロキシ経由にし、許可していないドメインへの通信は遮断・記録します(C2通信を見つけるため)。'
+      },
+      {
+        head: 'VPNやSaaSの認証を緩めない:',
+        body: '便利さのために認証を緩めると、そこが侵入の本命入口になります。多要素認証は必須。'
+      },
+      {
+        head: '機密情報をコードに書かない:',
+        body: 'APIキーや接続情報をソースコードや設定ファイルに残さず、Secret Manager のような専用の保管庫を使います。'
+      },
+      {
+        head: '「侵入された前提」で作る:',
+        body: 'アプリ側でも権限分離・操作の監査ログ・最小権限の徹底を入れ、万一侵入されても被害が広がらない設計にしておきます。'
+      }
+    ],
+    steps: [
+      {
+        title: '業務メールにそっくりな「狙い撃ちメール」が届く',
+        description:
+          '攻撃者が、対象組織の事情をしっかり下調べした上で、業務文書を装ったメールを特定の従業員に送ります。'
+      },
+      {
+        title: '従業員には自然な業務メールに見える',
+        description:
+          '「請求書を確認してください」など、いつも通りの依頼に見えるため、開かれやすい。'
+      },
+      {
+        title: '添付や仕込まれたリンクから端末が感染',
+        description:
+          'マクロ付きの Word 文書や偽サイトから、攻撃用プログラムが端末に入り込みます。'
+      },
+      {
+        title: 'すぐには動かず、社内を静かに広げる',
+        description:
+          '感染を派手に出さず、IDやパスワードを集めながら、ゆっくり社内サーバや認証基盤(Active Directory)へ侵入を広げます。'
+      },
+      {
+        title: '機密データを集める',
+        description:
+          'ファイルサーバや認証基盤から、組織の重要書類を選んで集めます。'
+      },
+      {
+        title: '暗号化して、業務通信に紛らせて外へ',
+        description:
+          '集めたデータを暗号化し、ふつうの業務通信に紛れる形で攻撃者の外部サーバへ送り出します。多層防御 + ゼロトラスト + 出口対策で潜伏を防ぎます。'
+      }
+    ],
+    actorLabels: {
+      attacker: '攻撃グループ',
+      mail: '狙い撃ちメール',
+      employee: '従業員',
+      endpoint: '感染した端末',
+      ad: '社内のID管理 / ファイルサーバ',
+      exfil: '集められた機密データ'
+    },
+    groupLabels: {
+      org: '狙われた組織の中'
+    },
+    connectionLabels: {
+      lateral: '内部を静かに広げる',
+      collect: '機密を集める'
+    }
+  }
 };

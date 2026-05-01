@@ -28,15 +28,15 @@ export const phishing: AttackDefinition = {
     { head: 'お知らせメールの整備:', body: '正規メールにリンクを含めない・あるいは含める形式を一貫させ、利用者が真贋判別しやすくする。' }
   ],
   setup(stage) {
-    stage.addGroup({ x: 0.66, y: 0.04, w: 0.32, h: 0.92, label: '攻撃者インフラ', variant: 'attack' });
+    stage.addGroup({ id: 'attacker-infra', x: 0.66, y: 0.04, w: 0.32, h: 0.92, label: '攻撃者インフラ', variant: 'attack' });
     stage.addActor('attacker',  { pict: 'attacker', pos: { x: 0.08, y: 0.5  }, label: '攻撃者' });
     stage.addActor('mail',      { pict: 'email',    pos: { x: 0.32, y: 0.5  }, label: '偽メール' });
     stage.addActor('victim',    { pict: 'user',     pos: { x: 0.55, y: 0.5  }, label: '受信者' });
     stage.addActor('fakesite',  { pict: 'browser',  pos: { x: 0.78, y: 0.22 }, label: '偽サイト' });
     stage.addActor('cred',      { pict: 'key',      pos: { x: 0.78, y: 0.78 }, label: 'ID/PW' });
     stage.addActor('attacker2', { pict: 'attacker', pos: { x: 0.95, y: 0.5  } });
-    stage.addConnection('fakesite', 'cred', { variant: 'attack', dashed: true });
-    stage.addConnection('cred', 'attacker2', { variant: 'attack', dashed: true });
+    stage.addConnection('fakesite', 'cred', { id: 'capture', variant: 'attack', dashed: true });
+    stage.addConnection('cred', 'attacker2', { id: 'forward', variant: 'attack', dashed: true });
   },
   steps: [
     {
@@ -75,5 +75,114 @@ export const phishing: AttackDefinition = {
         stage.sendPacket('cred', 'attacker2', { duration: 1100, payload: '認証情報' });
       }
     }
-  ]
+  ],
+  beginner: {
+    summary:
+      '銀行や宅配などになりすましたメール/SMSで「本物そっくり」の偽サイトに誘導され、IDやパスワードを盗まれてしまう詐欺。',
+    caseStudy:
+      '銀行・宅配・キャリア決済を装ったSMS(スミッシングと呼びます)で「再認証してください」と急かす内容を送り、本物そっくりのログイン画面で ID・パスワード・SMSで送られてくる認証コードまで入力させて、すぐに不正送金される事件が今も続発しています。',
+    damage: [
+      {
+        head: 'IDとパスワードを盗まれる:',
+        body: 'ID・パスワード・SMS の認証コードまで奪われ、本人になりすまして操作されます。'
+      },
+      {
+        head: '勝手に送金される:',
+        body: 'ネット銀行や決済サービスの残高を、攻撃者の口座に送金されてしまいます。'
+      },
+      {
+        head: '個人情報がまとめて流出:',
+        body: '住所・電話番号・カード番号などをまとめて入力させられて、丸ごと盗まれます。'
+      },
+      {
+        head: '他のサービスでも被害が広がる:',
+        body: '盗んだIDとパスワードで、他のサービスにもログインを試されてしまいます(パスワード使い回しの罠)。'
+      }
+    ],
+    defense: [
+      {
+        head: '送信元の証明書をチェックする仕組み(SPF/DKIM/DMARC):',
+        body: 'メールが「本当にそのドメインから送られた」かをチェックする3つの仕組み(SPF / DKIM / DMARC)を設定して、なりすましメールを弾けるようにします。'
+      },
+      {
+        head: 'パスキー(端末に紐づくログイン)を使う:',
+        body: 'パスキー / FIDO2 という「ログインしたいサイトのドメインに自動で紐づいて動く認証」を使えば、偽サイトに入力しても認証が成立しません。'
+      },
+      {
+        head: '利用者の習慣づけ:',
+        body: 'メール内のリンクからではなく、ブックマーク経由で公式サイトに入る、と利用者に学んでもらう。'
+      },
+      {
+        head: '似たドメインを監視する:',
+        body: '自社ブランドに似た紛らわしいドメイン(例: rnybank.com / mybаnk.com 等)が登録されていないか、定期的に監視して通報します。'
+      },
+      {
+        head: '普段と違う使い方を検知する認証(リスクベース認証):',
+        body: 'いつもと違う端末・場所からのログインには追加で本人確認を求めるなど、状況によって認証強度を変える仕組みを入れます。'
+      }
+    ],
+    devNote: [
+      {
+        head: 'ログイン画面のドメインを統一する:',
+        body: 'ログインを `login.example.com` のような決まった場所に固定して、利用者に「ここ以外は偽物」と覚えてもらいます。サブドメインを乱立させない。'
+      },
+      {
+        head: 'メール内リンクの設計:',
+        body: 'クリック計測のために `track.example.com` のようなリダイレクト URL を経由させると、利用者が真贋判別できなくなります。極力使わない。'
+      },
+      {
+        head: 'パスワードよりパスキー:',
+        body: '可能ならパスワード+ワンタイムコードよりも、WebAuthn / パスキーで認証する作りにしましょう。フィッシング耐性が圧倒的に高いです。'
+      },
+      {
+        head: 'リアルタイム中継型対策:',
+        body: '偽サイトが入力をその場で本物に転送する手口(リアルタイム中継型)に対しては、`Origin` / `Referer` ヘッダ検証も併用します。'
+      },
+      {
+        head: 'お知らせメールの形式を統一:',
+        body: '正規メールではリンクを使わない、あるいは形式を一貫させて、利用者が真贋を見分けやすくします。'
+      }
+    ],
+    steps: [
+      {
+        title: '攻撃者が「本物っぽい」メールを大量送信',
+        description:
+          '攻撃者が銀行・宅配・通信会社などの正規ブランドになりすましたメールやSMSを、大量にばらまきます。'
+      },
+      {
+        title: '受信者の手元に届く',
+        description:
+          '「再認証してください」「支払いに失敗しました」のように、急かす文面で利用者を慌てさせます。'
+      },
+      {
+        title: 'リンクを踏んで「本物そっくりの偽サイト」へ',
+        description:
+          '受信者がメール内のリンクを押すと、本物と見分けがつかないログイン画面が出てきます。'
+      },
+      {
+        title: 'IDとパスワードを偽サイトに入力してしまう',
+        description:
+          '見た目に騙されて、本物のつもりで偽サイトにログイン情報を入力してしまいます。'
+      },
+      {
+        title: '入力した情報がそのまま攻撃者の手に',
+        description:
+          '偽サイトに入った情報は即座に攻撃者へ送られます。パスキー(ドメインに紐づく認証)と送信ドメイン認証で根本的に防げます。'
+      }
+    ],
+    actorLabels: {
+      attacker: '攻撃者',
+      mail: '偽メール / SMS',
+      victim: '受け取った人',
+      fakesite: '本物そっくりの偽サイト',
+      cred: '盗まれたID / パスワード'
+    },
+    groupLabels: {
+      'attacker-infra': '攻撃者の道具'
+    },
+    connectionLabels: {
+      capture: '入力された情報を捕まえる',
+      forward: '攻撃者に転送'
+    }
+  }
 };

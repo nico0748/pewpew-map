@@ -26,13 +26,13 @@ export const clickjacking: AttackDefinition = {
     { head: '監視:', body: 'Refererに見覚えのないドメインから大量トラフィックがあれば、埋め込み試行を疑う。' }
   ],
   setup(stage) {
-    stage.addGroup({ x: 0.28, y: 0.10, w: 0.30, h: 0.80, label: '罠ページ(2層構造)', variant: 'attack' });
+    stage.addGroup({ id: 'trap-page', x: 0.28, y: 0.10, w: 0.30, h: 0.80, label: '罠ページ(2層構造)', variant: 'attack' });
     stage.addActor('victim', { pict: 'user',    pos: { x: 0.10, y: 0.5  }, label: '利用者' });
     stage.addActor('trap',   { pict: 'browser', pos: { x: 0.40, y: 0.30 }, label: '罠ページ(表)' });
     stage.addActor('hidden', { pict: 'browser', pos: { x: 0.40, y: 0.70 }, label: '正規ページ(透明iframe)' });
     stage.addActor('app',    { pict: 'server',  pos: { x: 0.85, y: 0.5  }, label: '正規サービス' });
-    stage.addConnection('trap', 'hidden', { variant: 'aux', dashed: true, label: '重ね合わせ' });
-    stage.addConnection('hidden', 'app', { variant: 'flow', dashed: true });
+    stage.addConnection('trap', 'hidden', { id: 'overlay', variant: 'aux', dashed: true, label: '重ね合わせ' });
+    stage.addConnection('hidden', 'app', { id: 'request', variant: 'flow', dashed: true });
   },
   steps: [
     {
@@ -64,5 +64,100 @@ export const clickjacking: AttackDefinition = {
         stage.after(900, () => stage.flashActor('app', 'shake', 700));
       }
     }
-  ]
+  ],
+  beginner: {
+    summary:
+      '罠ページの上に「本物の操作画面」を透明にして重ねて、利用者がクリックしたつもりの裏で別のボタンを押させてしまう攻撃。',
+    caseStudy:
+      '昔から「いいね/シェア」「退会」「Flashのカメラ・マイク許可」などのボタンを、透明な層として罠ページの上に重ね、「プレゼント当選!」のキャッチに釣られてクリックすると、裏で別の操作が走る、という手口が繰り返されています。',
+    damage: [
+      {
+        head: 'やった覚えのない操作:',
+        body: 'シェア・フォロー・購入・退会などを「うっかり」押してしまったことになります。'
+      },
+      {
+        head: 'プライバシー設定の改ざん:',
+        body: 'SNSの公開範囲設定を、本人が気づかないうちに変えられてしまいます。'
+      },
+      {
+        head: 'カメラ/マイクの権限を許可させられる:',
+        body: 'ブラウザのカメラ/マイク/通知などの許可ダイアログを「OK」と押させられて、覗き見の道具にされます。'
+      }
+    ],
+    defense: [
+      {
+        head: '自分のサイトを「他サイトの中に表示できない」ように宣言:',
+        body: 'HTTP ヘッダの `X-Frame-Options: DENY` または `SAMEORIGIN` を返して、外部サイトの中に自分のページを埋め込ませないようにします。'
+      },
+      {
+        head: '新しい設定 (CSP frame-ancestors) で許可元を絞る:',
+        body: 'CSP の `frame-ancestors` ディレクティブで「埋め込んで良いサイト」をきっちり指定します。X-Frame-Options の後継で、より柔軟です。'
+      },
+      {
+        head: '大事な操作はクリックだけで済ませない:',
+        body: 'パスワード入力・CAPTCHA(画像認証)・ワンタイムコードなどを挟み、クリックだけでは突破できなくします。'
+      },
+      {
+        head: '昔ながらのフレーム破り(frame-busting):',
+        body: '`if (top !== self) { 画面を隠す }` のような JavaScript で「他サイトの中に埋め込まれていたら表示しない」ようにする手法。補助として有効。'
+      }
+    ],
+    devNote: [
+      {
+        head: '「埋め込まれない」を初期値にする:',
+        body: '基本は埋め込み禁止にして、本当に必要なページだけ許可する設計が安全です。'
+      },
+      {
+        head: '本番のヘッダを実機で確認:',
+        body: 'CDN や前段のリバースプロキシが上書きしている場合があります。本番環境のレスポンスヘッダを実機で確認しましょう。'
+      },
+      {
+        head: 'OAuth同意画面の対策はプロバイダ任せ:',
+        body: 'OAuth(他サービスとログイン連携する仕組み)の同意画面は、提供元(Google/GitHub等)が埋め込み防止を担います。埋め込み可能な提供元を選ばない。'
+      },
+      {
+        head: 'モバイルアプリのWebViewにも注意:',
+        body: 'AndroidなどではタップTapjackingという「タッチ位置を擬装する」似た攻撃があります。`FLAG_NOT_TOUCHABLE` などの併用を検討。'
+      },
+      {
+        head: '監視:',
+        body: '「見覚えのないドメインから自分のサイトに大量に来ている」というアクセスログのパターンは、埋め込みの試行を疑います。'
+      }
+    ],
+    steps: [
+      {
+        title: '利用者が罠ページを開く',
+        description:
+          '「プレゼント当選!」「謎のスクラッチくじ」のような釣り文句で、利用者を罠ページに誘い込みます。'
+      },
+      {
+        title: '裏側に正規ページが透明で重ねられている',
+        description:
+          '罠ページの裏に、「本物のサービスの操作画面」が透明な層として重ねられています(透明な iframe)。利用者には見えません。'
+      },
+      {
+        title: 'クリックが透けて裏のボタンを押してしまう',
+        description:
+          '「応募する」を押したつもりが、その下にある透明な「送金する」「退会する」のボタンをクリックしてしまいます。'
+      },
+      {
+        title: '本人の操作として記録されてしまう',
+        description:
+          'ログイン状態の目印(クッキー)が付いているので、本物のサービスから見ると「本人がやった操作」として確定します。X-Frame-Options や CSP の frame-ancestors を設定すれば防げます。'
+      }
+    ],
+    actorLabels: {
+      victim: '利用者',
+      trap: '罠ページ(表面に出ている)',
+      hidden: '本物のページ(透明にして重ねてある)',
+      app: '本物のサービス'
+    },
+    groupLabels: {
+      'trap-page': '罠ページ(2層構造)'
+    },
+    connectionLabels: {
+      overlay: '透明にして重ねている',
+      request: '本物に操作リクエスト'
+    }
+  }
 };

@@ -28,15 +28,15 @@ export const xss: AttackDefinition = {
     { head: 'WAFは万能ではない:', body: '出力エスケープ等の根本対策と組み合わせる。' }
   ],
   setup(stage) {
-    stage.addGroup({ x: 0.02, y: 0.62, w: 0.62, h: 0.34, label: '被害者側', variant: 'victim' });
-    stage.addGroup({ x: 0.74, y: 0.30, w: 0.24, h: 0.40, label: '攻撃者インフラ', variant: 'attack' });
+    stage.addGroup({ id: 'victim-side', x: 0.02, y: 0.62, w: 0.62, h: 0.34, label: '被害者側', variant: 'victim' });
+    stage.addGroup({ id: 'attacker-infra', x: 0.74, y: 0.30, w: 0.24, h: 0.40, label: '攻撃者インフラ', variant: 'attack' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.25 }, label: '攻撃者' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.50, y: 0.25 }, label: '掲示板/SNS' });
     stage.addActor('victim',   { pict: 'user',     pos: { x: 0.10, y: 0.78 }, label: '一般利用者' });
     stage.addActor('browser',  { pict: 'browser',  pos: { x: 0.50, y: 0.78 }, label: '被害ブラウザ' });
     stage.addActor('cnc',      { pict: 'bot',      pos: { x: 0.88, y: 0.5 },  label: '攻撃者の収集サーバ' });
-    stage.addConnection('victim', 'browser', { variant: 'flow' });
-    stage.addConnection('browser', 'app', { variant: 'flow', dashed: true });
+    stage.addConnection('victim', 'browser', { id: 'use', variant: 'flow' });
+    stage.addConnection('browser', 'app', { id: 'view', variant: 'flow', dashed: true });
   },
   steps: [
     {
@@ -78,5 +78,115 @@ export const xss: AttackDefinition = {
         stage.flashActor('cnc', 'shake', 800);
       }
     }
-  ]
+  ],
+  beginner: {
+    summary:
+      '掲示板やSNSの投稿欄に「ページを開いた人のブラウザで勝手に動くプログラム」を埋め込まれて、ログイン情報を盗まれてしまう攻撃。',
+    caseStudy:
+      '大手通販サイトのレビュー欄に、攻撃用のプログラム文字列を投稿できる弱点があり、ページを見ただけの利用者から「ログインしっぱなし状態を保つための目印(クッキー)」が攻撃者のサーバに送られて、なりすましでログインされてしまった事例が多数報告されています。',
+    damage: [
+      {
+        head: 'ログイン情報(クッキー)を盗まれる:',
+        body: 'ブラウザに保存されている「ログイン状態を保つための目印(クッキー)」を勝手に外部へ送られて、本人としてログインされてしまいます。'
+      },
+      {
+        head: '入力中の文字を盗み見られる:',
+        body: '住所やクレジットカード番号など、フォームに打ち込んでいる内容を1文字単位で攻撃者に送られます。'
+      },
+      {
+        head: '画面を書き換えられる:',
+        body: '本物の画面に偽のログインフォームを差し込まれ、利用者が知らずに偽サイトに情報を入力してしまいます。'
+      },
+      {
+        head: 'ウイルス配布の踏み台にされる:',
+        body: '正規のページから自動で攻撃用サイトへ飛ばされ、ウイルスを仕込まれます。'
+      }
+    ],
+    defense: [
+      {
+        head: '画面に出すときに記号を「ただの文字」に変える(エスケープ):',
+        body: 'ユーザの入力をそのまま画面に貼り付けず、`<` `>` `"` などをただの文字として表示する処理(エスケープ)を必ずかけます。テンプレートライブラリの自動エスケープ機能をオフにしないこと。'
+      },
+      {
+        head: '勝手なプログラム実行を禁じる宣言(CSP)を入れる:',
+        body: 'ブラウザに対して「この場所のスクリプトしか動かしてよくない」と宣言する HTTP ヘッダ(CSP)を設定します。万一プログラムが埋め込まれても実行を止められます。'
+      },
+      {
+        head: 'クッキーをJavaScriptから読めなくする(HttpOnly):',
+        body: 'ログイン用クッキーには HttpOnly という設定を付けて、ブラウザ上のプログラムから読めないようにします。Secure / SameSite も合わせて付けます。'
+      },
+      {
+        head: '入力できる文字を絞る:',
+        body: '入力欄に書いてよい文字種(英数字のみなど)を決めて、それ以外は弾きます。'
+      },
+      {
+        head: 'リッチ入力には実績ある掃除ライブラリ:',
+        body: 'ブログのように太字や画像を許可したい場合は、自前で済ませず DOMPurify などの「危険な部分だけ取り除いてくれるライブラリ」を使います。'
+      }
+    ],
+    devNote: [
+      {
+        head: '危険な書き込み方を避ける:',
+        body: '`innerHTML` / React の `dangerouslySetInnerHTML` / Vue の `v-html` のような「HTMLをそのまま流し込む書き方」は基本使わない。`textContent` や `{{ }}` を使えば自動でエスケープされます。'
+      },
+      {
+        head: 'リンク先のチェック:',
+        body: 'ユーザが入力した URL をリンク (`<a href>`) や画像 (`<img src>`) に出すときは、`javascript:` で始まるものや `data:` URL を弾きます。'
+      },
+      {
+        head: 'JSONをHTMLに埋めるとき:',
+        body: 'スクリプトタグの中に JSON を入れる場合、`</script>` という文字列が入っていると壊れるので必ず `<` `>` をエスケープ。'
+      },
+      {
+        head: 'インラインで動かしたいときは nonce / hash:',
+        body: 'CSP を設定したうえで、どうしても直書きのスクリプトを動かしたい場合は、サーバ側で発行した使い捨てトークン(nonce)やハッシュで限定します。'
+      },
+      {
+        head: 'WAF(攻撃を弾く番人)だけに頼らない:',
+        body: 'WAF(怪しいリクエストを自動で弾くソフト)は補助です。出力時のエスケープなど根本対策と必ず組み合わせます。'
+      }
+    ],
+    steps: [
+      {
+        title: '攻撃者が「画面で勝手に動くプログラム」を投稿する',
+        description:
+          '攻撃者が掲示板や SNS の投稿欄に、`<script>...</script>` のような「ページを開いた人のブラウザで動くプログラム」を仕込んで保存します(蓄積型XSSと呼ばれる手口)。'
+      },
+      {
+        title: '何も知らない利用者がページを開く',
+        description:
+          '事情を知らない一般利用者が、攻撃者の投稿を含むページを表示します。'
+      },
+      {
+        title: 'サーバが投稿をそのまま貼り付けて返してしまう',
+        description:
+          'アプリが投稿内容を「ただの文字」に変える処理(エスケープ)をせず、HTML としてそのまま返してしまいます。'
+      },
+      {
+        title: 'ブラウザがプログラムを実行してクッキーを送ってしまう',
+        description:
+          '利用者のブラウザが攻撃者のプログラムを実行し、ログイン状態を保つ目印(クッキー)が攻撃者のサーバに送られます。'
+      },
+      {
+        title: 'なりすましでログインされる',
+        description:
+          '攻撃者は手に入れたクッキーを使って、本人のフリでログインできてしまいます。エスケープ + CSP + HttpOnly クッキーの 3 点を組み合わせれば防げます。'
+      }
+    ],
+    actorLabels: {
+      attacker: '攻撃者',
+      app: '掲示板やSNSのアプリ',
+      victim: '一般の利用者',
+      browser: '利用者のブラウザ',
+      cnc: '攻撃者のデータ集めサーバ'
+    },
+    groupLabels: {
+      'victim-side': '利用者の手元',
+      'attacker-infra': '攻撃者の道具'
+    },
+    connectionLabels: {
+      use: 'ブラウザを使う',
+      view: 'ページを見にいく'
+    }
+  }
 };
