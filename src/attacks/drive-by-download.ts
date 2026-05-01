@@ -28,11 +28,14 @@ export const driveByDownload: AttackDefinition = {
     { head: 'インシデント時の連絡経路:', body: '改ざん検知時のCDNパージ・告知手順をRunbook化しておく。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.50, y: 0.04, w: 0.46, h: 0.92, label: '攻撃者インフラ', variant: 'attack' });
     stage.addActor('victim',  { pict: 'user',     pos: { x: 0.10, y: 0.5  }, label: '利用者' });
     stage.addActor('site',    { pict: 'browser',  pos: { x: 0.36, y: 0.5  }, label: '改ざんサイト' });
     stage.addActor('exploit', { pict: 'warning',  pos: { x: 0.62, y: 0.5  }, label: 'Exploit Kit' });
     stage.addActor('payload', { pict: 'document', pos: { x: 0.85, y: 0.22 }, label: 'マルウェア' });
     stage.addActor('cnc',     { pict: 'attacker', pos: { x: 0.85, y: 0.78 }, label: '攻撃者C&C' });
+    stage.addConnection('site', 'exploit', { variant: 'attack', dashed: true, label: 'redirect' });
+    stage.addConnection('exploit', 'payload', { variant: 'attack', dashed: true });
   },
   steps: [
     {

@@ -28,9 +28,11 @@ export const bruteForce: AttackDefinition = {
     { head: '監視:', body: '失敗の急増/IP分散/UA偏りを検知するアラートを用意。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.42, y: 0.18, w: 0.54, h: 0.66, label: '標的サービス', variant: 'victim' });
     stage.addActor('attacker', { pict: 'bot',     pos: { x: 0.10, y: 0.5 }, label: 'スクリプト' });
     stage.addActor('login',    { pict: 'server',  pos: { x: 0.55, y: 0.5 }, label: 'ログインAPI' });
     stage.addActor('user',     { pict: 'lock',    pos: { x: 0.85, y: 0.5 }, label: 'アカウント' });
+    stage.addConnection('login', 'user', { variant: 'flow' });
   },
   steps: [
     {

@@ -28,9 +28,11 @@ export const sqlInjection: AttackDefinition = {
     { head: '静的解析/テスト:', body: 'sqlmap風テスト・lint・依存ライブラリのCVE監視をCIに組み込む。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.36, y: 0.18, w: 0.60, h: 0.66, label: 'サーバサイド', variant: 'infra' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5 }, label: '攻撃者' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.50, y: 0.5 }, label: 'Webアプリ' });
     stage.addActor('db',       { pict: 'database', pos: { x: 0.88, y: 0.5 }, label: 'DB' });
+    stage.addConnection('app', 'db', { variant: 'flow', label: 'SQL' });
   },
   steps: [
     {

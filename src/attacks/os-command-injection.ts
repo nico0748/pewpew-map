@@ -27,10 +27,13 @@ export const osCommandInjection: AttackDefinition = {
     { head: '構造化ログ:', body: 'コマンド実行の全引数を構造化ログに残し、異常検知できるようにする。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.30, y: 0.10, w: 0.66, h: 0.84, label: 'サーバホスト', variant: 'infra' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.5  }, label: '攻撃者' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.45, y: 0.5  }, label: 'Webアプリ' });
     stage.addActor('os',       { pict: 'server',   pos: { x: 0.78, y: 0.30 }, label: 'OSシェル' });
     stage.addActor('files',    { pict: 'document', pos: { x: 0.78, y: 0.78 }, label: '/etc/passwd 等' });
+    stage.addConnection('app', 'os', { variant: 'flow', label: 'system()' });
+    stage.addConnection('os', 'files', { variant: 'aux', dashed: true });
   },
   steps: [
     {

@@ -28,12 +28,16 @@ export const passwordList: AttackDefinition = {
     { head: '管理者向けUI:', body: '不審ログインの俯瞰ダッシュボードを用意し、初動を素早く。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.42, y: 0.02, w: 0.54, h: 0.96, label: '標的サービス', variant: 'victim' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.05, y: 0.5  }, label: '攻撃者' });
     stage.addActor('list',     { pict: 'document', pos: { x: 0.25, y: 0.5  }, label: '流出ID/PWリスト' });
     stage.addActor('login',    { pict: 'server',   pos: { x: 0.55, y: 0.5  }, label: 'ログインAPI' });
     stage.addActor('a1',       { pict: 'lock',     pos: { x: 0.85, y: 0.18 }, label: 'アカウント1' });
     stage.addActor('a2',       { pict: 'lock',     pos: { x: 0.85, y: 0.50 }, label: 'アカウント2' });
     stage.addActor('a3',       { pict: 'lock',     pos: { x: 0.85, y: 0.82 }, label: 'アカウント3' });
+    stage.addConnection('login', 'a1', { variant: 'flow', dashed: true });
+    stage.addConnection('login', 'a2', { variant: 'flow', dashed: true });
+    stage.addConnection('login', 'a3', { variant: 'flow', dashed: true });
   },
   steps: [
     {

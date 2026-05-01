@@ -28,12 +28,15 @@ export const phishing: AttackDefinition = {
     { head: 'お知らせメールの整備:', body: '正規メールにリンクを含めない・あるいは含める形式を一貫させ、利用者が真贋判別しやすくする。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.66, y: 0.04, w: 0.32, h: 0.92, label: '攻撃者インフラ', variant: 'attack' });
     stage.addActor('attacker',  { pict: 'attacker', pos: { x: 0.08, y: 0.5  }, label: '攻撃者' });
     stage.addActor('mail',      { pict: 'email',    pos: { x: 0.32, y: 0.5  }, label: '偽メール' });
     stage.addActor('victim',    { pict: 'user',     pos: { x: 0.55, y: 0.5  }, label: '受信者' });
     stage.addActor('fakesite',  { pict: 'browser',  pos: { x: 0.78, y: 0.22 }, label: '偽サイト' });
     stage.addActor('cred',      { pict: 'key',      pos: { x: 0.78, y: 0.78 }, label: 'ID/PW' });
     stage.addActor('attacker2', { pict: 'attacker', pos: { x: 0.95, y: 0.5  } });
+    stage.addConnection('fakesite', 'cred', { variant: 'attack', dashed: true });
+    stage.addConnection('cred', 'attacker2', { variant: 'attack', dashed: true });
   },
   steps: [
     {

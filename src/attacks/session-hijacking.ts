@@ -27,10 +27,14 @@ export const sessionHijacking: AttackDefinition = {
     { head: '同時セッション制御:', body: '不審な多重セッションを検知/通知する仕組みを用意。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.02, y: 0.04, w: 0.50, h: 0.40, label: '正規利用者', variant: 'victim' });
+    stage.addGroup({ x: 0.02, y: 0.60, w: 0.30, h: 0.36, label: '攻撃者', variant: 'attack' });
     stage.addActor('victim',   { pict: 'user',     pos: { x: 0.10, y: 0.30 }, label: '正規利用者' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.78 }, label: '攻撃者' });
     stage.addActor('sid',      { pict: 'key',      pos: { x: 0.40, y: 0.50 }, label: 'セッションID' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.78, y: 0.50 }, label: 'Webサービス' });
+    stage.addConnection('victim', 'sid', { variant: 'flow' });
+    stage.addConnection('sid', 'app', { variant: 'flow' });
   },
   steps: [
     {

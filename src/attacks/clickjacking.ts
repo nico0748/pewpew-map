@@ -26,10 +26,13 @@ export const clickjacking: AttackDefinition = {
     { head: '監視:', body: 'Refererに見覚えのないドメインから大量トラフィックがあれば、埋め込み試行を疑う。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.28, y: 0.10, w: 0.30, h: 0.80, label: '罠ページ(2層構造)', variant: 'attack' });
     stage.addActor('victim', { pict: 'user',    pos: { x: 0.10, y: 0.5  }, label: '利用者' });
     stage.addActor('trap',   { pict: 'browser', pos: { x: 0.40, y: 0.30 }, label: '罠ページ(表)' });
     stage.addActor('hidden', { pict: 'browser', pos: { x: 0.40, y: 0.70 }, label: '正規ページ(透明iframe)' });
     stage.addActor('app',    { pict: 'server',  pos: { x: 0.85, y: 0.5  }, label: '正規サービス' });
+    stage.addConnection('trap', 'hidden', { variant: 'aux', dashed: true, label: '重ね合わせ' });
+    stage.addConnection('hidden', 'app', { variant: 'flow', dashed: true });
   },
   steps: [
     {

@@ -28,12 +28,17 @@ export const supplyChain: AttackDefinition = {
     { head: 'シークレットの隔離:', body: 'CIの環境変数を最小権限化。漏洩前提の自動ローテも検討。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.74, y: 0.02, w: 0.24, h: 0.96, label: '顧客企業群', variant: 'victim' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.05, y: 0.5  }, label: '攻撃者' });
     stage.addActor('vendor',   { pict: 'server',   pos: { x: 0.30, y: 0.5  }, label: 'ベンダ/CI/CD' });
     stage.addActor('package',  { pict: 'document', pos: { x: 0.55, y: 0.5  }, label: '正規署名済パッケージ' });
     stage.addActor('cust1',    { pict: 'server',   pos: { x: 0.85, y: 0.18 }, label: '顧客企業A' });
     stage.addActor('cust2',    { pict: 'server',   pos: { x: 0.85, y: 0.50 }, label: '顧客企業B' });
     stage.addActor('cust3',    { pict: 'server',   pos: { x: 0.85, y: 0.82 }, label: '顧客企業C' });
+    stage.addConnection('vendor', 'package', { variant: 'flow' });
+    stage.addConnection('package', 'cust1', { variant: 'flow', dashed: true });
+    stage.addConnection('package', 'cust2', { variant: 'flow', dashed: true });
+    stage.addConnection('package', 'cust3', { variant: 'flow', dashed: true });
   },
   steps: [
     {

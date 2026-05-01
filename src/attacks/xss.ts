@@ -28,11 +28,15 @@ export const xss: AttackDefinition = {
     { head: 'WAFは万能ではない:', body: '出力エスケープ等の根本対策と組み合わせる。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.02, y: 0.62, w: 0.62, h: 0.34, label: '被害者側', variant: 'victim' });
+    stage.addGroup({ x: 0.74, y: 0.30, w: 0.24, h: 0.40, label: '攻撃者インフラ', variant: 'attack' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.10, y: 0.25 }, label: '攻撃者' });
     stage.addActor('app',      { pict: 'server',   pos: { x: 0.50, y: 0.25 }, label: '掲示板/SNS' });
     stage.addActor('victim',   { pict: 'user',     pos: { x: 0.10, y: 0.78 }, label: '一般利用者' });
     stage.addActor('browser',  { pict: 'browser',  pos: { x: 0.50, y: 0.78 }, label: '被害ブラウザ' });
     stage.addActor('cnc',      { pict: 'bot',      pos: { x: 0.88, y: 0.5 },  label: '攻撃者の収集サーバ' });
+    stage.addConnection('victim', 'browser', { variant: 'flow' });
+    stage.addConnection('browser', 'app', { variant: 'flow', dashed: true });
   },
   steps: [
     {

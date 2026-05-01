@@ -39,6 +39,7 @@ export const ddos: AttackDefinition = {
     { head: 'ログとメトリクス:', body: '攻撃の早期検知のため p99 レイテンシと 4xx/5xx の急増監視は必須。' }
   ],
   setup(stage) {
+    stage.addGroup({ x: 0.22, y: 0.02, w: 0.32, h: 0.96, label: 'ボットネット', variant: 'attack' });
     stage.addActor('attacker', { pict: 'attacker', pos: { x: 0.05, y: 0.5 }, label: '攻撃者' });
     botPositions.forEach((p, i) => {
       stage.addActor(`bot${i}`, { pict: 'bot', pos: p, label: i === 0 ? 'ボットネット' : undefined });
