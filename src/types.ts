@@ -48,6 +48,8 @@ export interface BeginnerContent {
   damage: InfoItem[];
   defense: InfoItem[];
   devNote: InfoItem[];
+  /** 「自分のアプリにこんな機能があれば要注意」のチェックリスト(beginner 用文言) */
+  appliesIf?: InfoItem[];
   /** pro の steps と同じ長さ。run は共有なので title/description のみ。 */
   steps: Array<{ title: string; description: string }>;
   /** setup 後に上書きするアクター/グループ/接続のラベル。キーは setup で割り当てた id。 */
@@ -63,6 +65,11 @@ export interface AttackDefinition {
   damage: InfoItem[];
   defense: InfoItem[];
   devNote: InfoItem[];
+  /**
+   * 「自分のアプリにこんな機能/実装があればこの攻撃に該当」というチェックリスト。
+   * 利用者が自分のアプリ内容と照らして、その攻撃が自分事かを素早く判断するためのもの。
+   */
+  appliesIf: InfoItem[];
   /** 初学者向けコンテンツ。未提供なら pro のまま表示する。 */
   beginner?: BeginnerContent;
   /** Stage に対してアクター登録を行う(初期状態の構築のみ)。 */
