@@ -5,6 +5,13 @@ const meta = AttacksMeta.find((a) => a.slug === 'model-extraction')!;
 
 export const modelExtraction: AttackDefinition = {
   meta,
+  appliesIf: [
+    { head: '自前学習したMLモデルをAPIで提供している:', body: '高精度モデルが差別化要素のサービスはモデル盗用の標的。' },
+    { head: 'API応答に確率分布/スコア(logit)を含む:', body: '攻撃者の蒸留学習を大幅に高速化させる情報。' },
+    { head: 'レートリミット/クエリ監視が無い:', body: '網羅クエリを検知できないと容易に蒸留される。' },
+    { head: '無料枠/トライアルで大量クエリ可能:', body: 'KYCや課金制限が無いと低コストで複製される。' },
+    { head: '応答に透かし(watermark)が無い:', body: '複製モデルの素性を後追いで主張できない。' }
+  ],
   caseStudy:
     '2016年 Tramèr らの "Stealing Machine Learning Models via Prediction APIs" で、Amazon ML や BigML 等の予測APIを叩くだけで決定木/SVM/NN を高精度に複製可能と実証。 2023年以降は LLM に対しても、API応答を蒸留(distillation)することで競合モデルを作る "Imitation Attack" が研究され、生成AIの知財/差別化要素を脅かす攻撃面として注目されている。OWASP LLM10 (Model Theft)。',
   damage: [
@@ -72,6 +79,13 @@ export const modelExtraction: AttackDefinition = {
   beginner: {
     summary:
       'AIのAPIを大量に叩いて入出力を集め、その答えを真似する別のAIを学習することで「中身を盗む」攻撃。',
+    appliesIf: [
+      { head: '自分で学習したAIをAPIで公開している:', body: '高精度なモデルが差別化要素のサービスは、複製の標的になりやすい。' },
+      { head: 'API応答で確率や信頼度スコアを返している:', body: '攻撃者の「真似学習」を大幅に楽にしてしまう情報を渡すことになります。' },
+      { head: '同じ人が大量にAPIを叩いても止まらない仕組み:', body: '網羅的なクエリを検知してレート制限する仕組みがないと、容易に蒸留されます。' },
+      { head: '無料枠やトライアルで大量にクエリを打てる:', body: '本人確認(KYC)や課金制限が無いと、低コストで複製されてしまいます。' },
+      { head: '応答に「透かし」を仕込んでいない:', body: '複製モデルが出回ったときに、自社のモデルを基にしたと証明できなくなります。' }
+    ],
     caseStudy:
       '2016年に「予測APIを叩くだけで決定木やSVMやニューラルネットワークが高精度に複製できる」という研究が発表されました。2023年以降は、ChatGPT のようなLLMに対しても、API応答を真似する形で類似モデルを作る攻撃(蒸留や Imitation Attack)が研究され、生成AIの知的財産が盗まれる脅威として注目されています。',
     damage: [

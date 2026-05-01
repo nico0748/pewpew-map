@@ -5,6 +5,13 @@ const meta = AttacksMeta.find((a) => a.slug === 'directory-traversal')!;
 
 export const directoryTraversal: AttackDefinition = {
   meta,
+  appliesIf: [
+    { head: 'ファイルダウンロード機能がある:', body: '`?file=xxx.pdf` のようにファイル名/パスをパラメータで受け取り、サーバ側で開いている。' },
+    { head: '画像/動画配信のURLにファイル名が露出:', body: '`/files/:name` のように直接ファイル名を受けて配信する作り。' },
+    { head: 'テンプレートや言語ファイルを動的に読み込む:', body: 'ロケールやテーマ名などをパスに使う処理は traversal の温床。' },
+    { head: '社内ツール/管理画面でログ閲覧機能がある:', body: '社内向けでも本番ファイルを読む経路があるなら同様に対象。' },
+    { head: 'ZIPやアーカイブ展開機能がある:', body: 'ZIPSlip のように、展開時のパス検証ミスで領域外書き込みが起きるケースも同種。' }
+  ],
   caseStudy:
     'ファイルダウンロード機能の "?file=report.pdf" のようなパラメータに "../../../../etc/passwd" を指定して認証ファイルや設定ファイルを取得する事案、画像配信URLを介してアプリ内秘密鍵が流出した事例などが報告されている。',
   damage: [
@@ -69,6 +76,13 @@ export const directoryTraversal: AttackDefinition = {
   beginner: {
     summary:
       'URL に「../」のような「上のフォルダに戻れ」という指示を混ぜ込まれて、見せてはいけない場所のファイルまで読まれてしまう攻撃。',
+    appliesIf: [
+      { head: 'ファイルをダウンロードできる機能がある:', body: 'URLにファイル名を含めて指定する作り(`?file=report.pdf` のような形)はとくに要注意。' },
+      { head: '画像配信のURLにファイル名がそのまま入る:', body: '`/images/abc.png` のように利用者が指定できるパス構造になっている場合。' },
+      { head: '言語切り替えやテーマでファイル名をURLから受ける:', body: 'ロケールやテーマ名をパスに使う作りも危険。' },
+      { head: '管理画面でサーバ上のログファイルを表示している:', body: '社内向けでも、サーバのファイルを読む経路があれば対象です。' },
+      { head: 'ZIPファイルを受け取って展開している:', body: 'ZIPの中身に細工された相対パスがあると、想定外の場所に書き込まれることがあります。' }
+    ],
     caseStudy:
       '「ファイルダウンロード機能」のURLパラメータ `?file=report.pdf` の代わりに `../../../../etc/passwd` を入れて、サーバ内部の認証用ファイルや設定ファイルを取得されてしまった事案や、画像配信URL経由でアプリの秘密鍵が流出した事例が報告されています。',
     damage: [

@@ -20,12 +20,14 @@ export function AttackPage() {
   const useBeginner = level === 'beginner' && !!attack.beginner;
   const content = useBeginner
     ? {
+        appliesIf: attack.beginner!.appliesIf ?? attack.appliesIf,
         caseStudy: attack.beginner!.caseStudy,
         damage: attack.beginner!.damage,
         defense: attack.beginner!.defense,
         devNote: attack.beginner!.devNote
       }
     : {
+        appliesIf: attack.appliesIf,
         caseStudy: attack.caseStudy,
         damage: attack.damage,
         defense: attack.defense,
@@ -45,6 +47,8 @@ export function AttackPage() {
         )}
         <StageView attack={attack} level={level} />
         <InfoSection
+          level={level}
+          appliesIf={content.appliesIf}
           caseStudy={content.caseStudy}
           damage={content.damage}
           defense={content.defense}

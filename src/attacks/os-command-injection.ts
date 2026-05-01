@@ -5,6 +5,13 @@ const meta = AttacksMeta.find((a) => a.slug === 'os-command-injection')!;
 
 export const osCommandInjection: AttackDefinition = {
   meta,
+  appliesIf: [
+    { head: '画像/動画/PDF変換機能がある:', body: 'ImageMagick/ffmpeg/wkhtmltopdf 等のCLIツールに引数を渡して呼び出す処理は典型的な攻撃面。' },
+    { head: 'pingやnslookupなど診断系の機能を実装している:', body: '入力されたホスト名をシェル経由で実行する作りは、ほぼ確実に注入可能。' },
+    { head: 'メール送信に sendmail / mailx を呼んでいる:', body: '宛先や Subject を引数にしている古い実装はリスク。' },
+    { head: 'system()/exec()/popen() を使っている:', body: '文字列でコマンドを呼ぶAPIを使っている時点でレビュー対象。' },
+    { head: 'アップロードファイル名をそのままシェルに渡す:', body: 'ユーザ命名のファイル名やパスを CLI 引数に直接連結している実装。' }
+  ],
   caseStudy:
     '入力値をシェルに渡す処理(画像変換ツール、pingツール、PDF生成、メール送信のsendmail呼び出し等)を踏み台に、サーバの任意コマンドを実行させ機密ファイルを取得・遠隔操作される事案が継続発生。Apache Struts などのフレームワーク脆弱性経由でも頻発。',
   damage: [
@@ -69,6 +76,13 @@ export const osCommandInjection: AttackDefinition = {
   beginner: {
     summary:
       '入力欄に「OSへの命令文字列」を仕込まれて、サーバの中で本来動かすべきでない命令を勝手に走らせられる攻撃。',
+    appliesIf: [
+      { head: '画像・動画・PDFを変換する機能がある:', body: 'ImageMagick・ffmpeg・wkhtmltopdf のような変換ツールを呼び出している処理は要注意です。' },
+      { head: 'pingや疎通確認を実行する画面がある:', body: '入力されたホスト名をそのままOSの命令に渡す実装はほぼ確実に危険。' },
+      { head: 'メール送信を `sendmail` などの古いコマンドでやっている:', body: '宛先や件名を引数として渡している場合は要注意です。' },
+      { head: 'コードに `system()` や `exec()` が出てくる:', body: '文字列を丸ごとOSに渡すAPIを使っているなら、設計レビューの対象。' },
+      { head: 'アップロードしたファイル名をそのまま処理に使っている:', body: 'ユーザが付けたファイル名をOSコマンドに渡すと攻撃文字列を仕込まれます。' }
+    ],
     caseStudy:
       '画像変換ツールや ping ツール、PDF生成、メール送信のように「ユーザの入力をそのまま OS のコマンドに渡してしまう」処理で、攻撃者がサーバに対し任意の操作を走らせ、設定ファイルや秘密鍵を抜き取られて遠隔操作されてしまう事案が今も発生しています。Apache Struts のようなフレームワークの弱点経由でも頻発しています。',
     damage: [
