@@ -1,11 +1,11 @@
 import type { AttackCategory, AttackMeta } from '../types';
 
 export const Categories: Record<'WEB' | 'MASS' | 'TARGET' | 'AUTH' | 'AI', AttackCategory> = {
-  WEB:    { id: 'web',    label: 'Webアプリケーションへの攻撃', color: '#3a86ff' },
-  MASS:   { id: 'mass',   label: '不特定多数を狙う攻撃',         color: '#ff006e' },
-  TARGET: { id: 'target', label: '特定組織を狙う攻撃',           color: '#fb5607' },
-  AUTH:   { id: 'auth',   label: '認証情報を狙う攻撃',           color: '#8338ec' },
-  AI:     { id: 'ai',     label: 'AI/機械学習システムへの攻撃',  color: '#06d6a0' }
+  WEB:    { id: 'web',    label: 'Webアプリケーションへの攻撃', color: '#73e8bd' },
+  MASS:   { id: 'mass',   label: '不特定多数を狙う攻撃',         color: '#67c9ff' },
+  TARGET: { id: 'target', label: '特定組織を狙う攻撃',           color: '#ffbd72' },
+  AUTH:   { id: 'auth',   label: '認証情報を狙う攻撃',           color: '#c79cff' },
+  AI:     { id: 'ai',     label: 'AI/機械学習システムへの攻撃',  color: '#ff8d96' }
 };
 
 export const AttacksMeta: AttackMeta[] = [
