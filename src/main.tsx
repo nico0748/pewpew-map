@@ -8,7 +8,7 @@ import './styles/main.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LevelProvider>
-      <HashRouter>
+      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App />
       </HashRouter>
     </LevelProvider>

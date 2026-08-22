@@ -71,8 +71,11 @@ export function StageView({ attack, level }: Props) {
   };
 
   return (
-    <>
-      <div className="stage" ref={stageRef} />
+    <div className="simulation-content">
+      <div className="stage-frame">
+        <div className="stage-corner-label">TOPOLOGY / LIVE</div>
+        <div className="stage" ref={stageRef} role="img" aria-label={`${attack.meta.name}の攻撃フロー図`} />
+      </div>
       <div className={`step-info${finished ? ' is-finished' : ''}`}>
         <div className="step-progress">
           ステップ {stepIdx} / {total}
@@ -91,12 +94,14 @@ export function StageView({ attack, level }: Props) {
       </div>
       <div className="controls">
         <button type="button" onClick={onNext} disabled={finished}>
-          {stepIdx === 0 ? '▶ 開始' : finished ? '完了' : '次へ ▶'}
+          <span aria-hidden="true">{stepIdx === 0 ? '▶' : '→'}</span>
+          {stepIdx === 0 ? '開始' : finished ? '完了' : '次へ'}
         </button>
         <button type="button" className="secondary" onClick={onReset}>
+          <span aria-hidden="true">↺</span>
           {finished ? '最初から見る' : 'リセット'}
         </button>
       </div>
-    </>
+    </div>
   );
 }

@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 export function AboutPage() {
   useEffect(() => {
-    document.title = 'このアプリについて - Cyber Attack Visualization';
-    return () => { document.title = 'Cyber Attack Visualization'; };
+    document.title = 'このアプリについて — PEWPEW';
+    return () => { document.title = 'PEWPEW — Threat Pattern Library'; };
   }, []);
 
   return (
@@ -13,7 +13,8 @@ export function AboutPage() {
         <div className="crumbs">このアプリについて</div>
 
         <section className="about-hero">
-          <h2>このアプリは何か</h2>
+          <span className="section-kicker">ABOUT PEWPEW</span>
+          <h1>このアプリは何か</h1>
           <p>
             代表的なサイバー攻撃の手口を、ピクトグラム × ステップアニメーションで可視化し、
             被害例・対策・開発上の注意点までを 1 ページで読み切れるカタログです。
